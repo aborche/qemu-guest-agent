@@ -47,15 +47,76 @@ qemu_guest_agent_enable="YES"
 qemu_guest_agent_flags="-d -v -l /var/log/qemu-ga.log"
 ```
 
+Flags means:
+ -d - daemon
+ -v - verbose
+ -l /var/log/qemu-ga.log - log all to file
+
 ## Run Agent
 
 After installing qemu-guest-agent, run it with command:
 
 ```
-# service start qemu-guest-agent
+# service qemu-guest-agent start
 ```
 
-## Authors
+## Check Logs
+
+Navigate to `/var/log` directory and check file `qemu-ga.log`.
+You should see next log records.
+
+```
+1540239465.752180: debug: disabling command: guest-suspend-disk
+1540239465.752205: debug: disabling command: guest-suspend-ram
+1540239465.752215: debug: disabling command: guest-suspend-hybrid
+1540239465.752224: debug: disabling command: guest-network-get-interfaces
+1540239465.752233: debug: disabling command: guest-get-vcpus
+1540239465.752241: debug: disabling command: guest-set-vcpus
+1540239465.752250: debug: disabling command: guest-get-memory-blocks
+1540239465.752259: debug: disabling command: guest-set-memory-blocks
+1540239465.752267: debug: disabling command: guest-get-memory-block-size
+1540239465.752276: debug: disabling command: guest-get-fsinfo
+1540239465.752285: debug: disabling command: guest-fsfreeze-status
+1540239465.752293: debug: disabling command: guest-fsfreeze-freeze
+1540239465.752302: debug: disabling command: guest-fsfreeze-freeze-list
+1540239465.752310: debug: disabling command: guest-fsfreeze-thaw
+1540239465.752318: debug: disabling command: guest-get-fsinfo
+1540239465.752327: debug: disabling command: guest-fstrim
+```
+
+## Send commands from QEMU
+
+Open console at Linux QEMU/KVM machine, locate name of FreeBSD virtual
+machine, and run command
+
+```
+# virsh qemu-agent-command freebsd-nginx-12  '{"execute":"guest-get-osinfo"}'
+```
+
+Returned string must be like
+
+```
+{"return":{"kernel-release":"12.0-BETA1","kernel-version":"FreeBSD 12.0-BETA1 r339443 GENERIC","machine":"amd64"}}
+```
+
+Also you can check `qemu-ga.log` for detailed info
+
+```
+1540239784.932925: debug: read data, count: 59, data: {"execute":"guest-sync", "arguments":{"id":1540239785425}}
+
+1540239784.932996: debug: process_event: called
+1540239784.933100: debug: processing command
+1540239784.933182: debug: sending count: 26, data: [{"return": 1540239785425}]
+1540239784.933589: debug: read data, count: 31, data: {"execute":"guest-get-osinfo"}
+
+1540239784.933668: debug: process_event: called
+1540239784.933689: debug: processing command
+1540239784.934186: debug: sending count: 121, data: [{"return": {"kernel-release": "12.0-BETA1", "kernel-version": "FreeBSD 12.0-BETA1 r339443 GENERIC", "machine": "amd64"}}]
+```
+
+If you do not need verbose logging, just remove '-v' flag from qemu_guest_agent_flags section in `/etc/rc.conf`
+
+## Port authors
 
 * **Kaltashkin Eugene** - [aborche](https://github.com/aborche)
 
