@@ -81,7 +81,7 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 
 LIB_DEPENDS=
 
-# qemu-utils must patch Makefile during pre-configure, because the master port
+# qemu-guest-agent must patch Makefile during pre-configure, because the master port
 # also patches Makefile.  We can't use EXTRA_PATCHES, because that happens
 # before do-patch, and causes a conflict with the master port's patch. And we
 # can't use post-patch, because the master port also defines that target.
@@ -92,6 +92,5 @@ post-install:
 	@${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/qemu-*
 	@${RMDIR} ${STAGEDIR}${DATADIR}
 	${MKDIR} ${STAGEDIR}${PREFIX}/qemu
-
 
 .include "${MASTERDIR}/Makefile"
