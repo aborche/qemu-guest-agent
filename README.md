@@ -21,6 +21,17 @@ For permanent loading virtio_console driver add next line to /boot/loader.conf
 virtio_console_load="YES"
 ```
 
+And check filesystem contents
+
+```
+# ls -al /dev/vtcon/
+total 1
+dr-xr-xr-x   2 root  wheel  512 Oct 22 16:05 .
+dr-xr-xr-x  11 root  wheel  512 Oct 22 16:05 ..
+lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 com.redhat.spice.0 -> ../ttyV0.1
+lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 org.qemu.guest_agent.0 -> ../ttyV0.2
+```
+
 ### Installing
 
 Clone this repo and run `make` and then `make install`
