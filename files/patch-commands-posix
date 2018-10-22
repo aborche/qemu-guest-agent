@@ -1,0 +1,23 @@
+--- qga/commands-posix.c.orig	2018-04-24 16:30:47.000000000 +0000
++++ qga/commands-posix.c	2018-10-22 14:53:47.826071000 +0000
+@@ -83,9 +83,9 @@
+ 
+     slog("guest-shutdown called, mode: %s", mode);
+     if (!has_mode || strcmp(mode, "powerdown") == 0) {
+-        shutdown_flag = "-P";
++        shutdown_flag = "-p";
+     } else if (strcmp(mode, "halt") == 0) {
+-        shutdown_flag = "-H";
++        shutdown_flag = "-h";
+     } else if (strcmp(mode, "reboot") == 0) {
+         shutdown_flag = "-r";
+     } else {
+@@ -102,7 +102,7 @@
+         reopen_fd_to_null(1);
+         reopen_fd_to_null(2);
+ 
+-        execle("/sbin/shutdown", "shutdown", "-h", shutdown_flag, "+0",
++        execle("/sbin/shutdown", "-h", shutdown_flag, "+0",
+                "hypervisor initiated shutdown", (char*)NULL, environ);
+         _exit(EXIT_FAILURE);
+     } else if (pid < 0) {

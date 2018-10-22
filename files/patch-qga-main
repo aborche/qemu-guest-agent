@@ -1,0 +1,23 @@
+--- qga/main.c.orig	2018-10-22 18:05:57.148730000 +0000
++++ qga/main.c	2018-10-22 18:13:16.826498000 +0000
+@@ -46,9 +46,9 @@
+ #endif
+ 
+ #ifndef _WIN32
+-#define QGA_VIRTIO_PATH_DEFAULT "/dev/virtio-ports/org.qemu.guest_agent.0"
++#define QGA_VIRTIO_PATH_DEFAULT "/dev/vtcon/org.qemu.guest_agent.0"
+ #define QGA_STATE_RELATIVE_DIR  "run"
+-#define QGA_SERIAL_PATH_DEFAULT "/dev/ttyS0"
++#define QGA_SERIAL_PATH_DEFAULT "/dev/vtcon/org.qemu.guest_agent.0"
+ #else
+ #define QGA_VIRTIO_PATH_DEFAULT "\\\\.\\Global\\org.qemu.guest_agent.0"
+ #define QGA_STATE_RELATIVE_DIR  "qemu-ga"
+@@ -1379,7 +1379,7 @@
+     }
+ 
+     if (config->method == NULL) {
+-        config->method = g_strdup("virtio-serial");
++        config->method = g_strdup("isa-serial");
+     }
+ 
+     socket_activation = check_socket_activation();
