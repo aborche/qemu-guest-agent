@@ -1,10 +1,11 @@
 # QEMU Guest Agent
 
-QEMU Guest Agent version adopted for FreeBSD
+QEMU Guest Agent version for FreeBSD guest
 
 ## WARNING!!!
 
 This port provides as is and now in deep development status. Many commands is not working, for example "fsfreeze". We try make a patches for vcpu and fs features at FreeBSD.
+Command reference and current status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/supported_command_reference.txt)
 
 ## Getting Started
 
@@ -119,6 +120,10 @@ Also you can check `qemu-ga.log` for detailed info
 ```
 
 If you do not need verbose logging, just remove '-v' flag from qemu_guest_agent_flags section in `/etc/rc.conf`
+
+## QAPI command reference and struct
+
+* [qapi-schema](https://github.com/qemu/qemu/blob/master/qga/qapi-schema.json)
 
 ## Port authors
 
