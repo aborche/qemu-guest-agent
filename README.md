@@ -9,12 +9,20 @@ Command reference and current command support status in FreeBSD can be found [he
 
 ## Supported systems
 
-Port tested at FreeBSD 12.
+Port tested at FreeBSD 12 and FreeBSD 11.
+
+## FreeBSD 11 issues
+
+If you need to build this port on FreeBSD 11 - before building, place 'qemu-guest-agent.in' to '/usr/ports/emulators/qemu/files/' folder.
+*virtio_console* driver in FreeBSD 11 doesn't support aliasing virtio channels in devfs. Use direct path for control device. eq: 
+
+```
+qemu_guest_agent_flags="-d -v -l /var/log/qemu-ga.log -p /dev/ttyV0.2"
+```
 
 ## Getting Started
 
-Before using and compiling QEMU Guest Agent, make sure the module "virtio_console" is
-loaded
+Before using and compiling QEMU Guest Agent, make sure the module "virtio_console" is loaded
 
 ### Prerequisites
 
@@ -45,10 +53,6 @@ lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 org.qemu.guest_agent.0 -> ../ttyV0.
 
 Clone this repo and run `make` and then `make install`
 
-```
-Give the example
-```
-
 Add next lines to `/etc/rc.conf` file
 
 ```
@@ -60,6 +64,8 @@ Flags means:
  -d - daemon
  -v - verbose
  -l /var/log/qemu-ga.log - log all to file
+
+For detailed help use `qemu-ga -h`
 
 ## Run Agent
 
@@ -93,7 +99,7 @@ You should see next log records.
 1540239465.752327: debug: disabling command: guest-fstrim
 ```
 
-## Send commands from QEMU
+## Send commands from QEMU/KVM
 
 Open console at Linux QEMU/KVM machine, locate name of FreeBSD virtual
 machine, and run command
@@ -107,6 +113,8 @@ Returned string must be like
 ```
 {"return":{"kernel-release":"12.0-BETA1","kernel-version":"FreeBSD 12.0-BETA1 r339443 GENERIC","machine":"amd64"}}
 ```
+
+If you get an error - check control port for qemu-ga at guest machine.
 
 Also you can check `qemu-ga.log` for detailed info
 
