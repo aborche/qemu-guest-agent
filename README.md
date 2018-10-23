@@ -5,7 +5,7 @@ QEMU Guest Agent version for FreeBSD guest
 ## WARNING!!!
 
 This port provides as is and now in deep development status. Many commands is not working, for example "fsfreeze". We try make a patches for vcpu and fs features at FreeBSD.
-Command reference and current status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/supported_command_reference.txt)
+Command reference and current status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/blob/master/supported_command_reference.txt)
 
 ## Getting Started
 
