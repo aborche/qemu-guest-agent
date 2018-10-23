@@ -185,7 +185,7 @@
       {
         "enabled": true,
         "name": "guest-set-time",
-	"freebsd-support": false,
+	"freebsd-support": true,
         "success-response": true
       },
       {
