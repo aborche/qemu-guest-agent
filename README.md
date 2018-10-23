@@ -4,13 +4,17 @@ QEMU Guest Agent version for FreeBSD guest
 
 ## WARNING!!!
 
-This port provides as is and now in deep development status. Many commands is not working, for example "fsfreeze". We try make a patches for vcpu and fs features at FreeBSD.
-Command reference and current status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/blob/master/supported_command_reference.txt)
+This port provides "as is". Some commands is not working, for example "fsfreeze". We try to make a patches for vcpu and fs features at FreeBSD.
+Command reference and current command support status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/blob/master/supported_command_reference.txt)
+
+## Supported systems
+
+Port tested at FreeBSD 12.
 
 ## Getting Started
 
-Before using and compiling QEMU Guest Agent, be sure module "virtio_console"
-is loaded
+Before using and compiling QEMU Guest Agent, make sure the module "virtio_console" is
+loaded
 
 ### Prerequisites
 
