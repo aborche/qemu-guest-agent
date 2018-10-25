@@ -20,7 +20,8 @@ PLIST=		${.CURDIR}/pkg-plist
 DESCR=		${.CURDIR}/pkg-descr
 EXTRA_PATCHES=	${.CURDIR}/files/patch-configure \
 		${.CURDIR}/files/patch-channel-posix ${.CURDIR}/files/patch-commands-posix \
-		${.CURDIR}/files/patch-qga-main
+		${.CURDIR}/files/patch-qga-main ${.CURDIR}/files/patch-commands-posix-linux \
+		${.CURDIR}/files/patch-qga-Makefile-objs
 PKGMESSAGE=
 
 PORTDOCS=	qemu-doc.html qemu-doc.txt

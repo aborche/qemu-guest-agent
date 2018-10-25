@@ -1,5 +1,5 @@
 --- qga/channel-posix.c.orig	2018-04-24 16:30:47.000000000 +0000
-+++ qga/channel-posix.c	2018-10-22 14:50:43.971758000 +0000
++++ qga/channel-posix.c	2018-10-24 09:17:21.878523000 +0000
 @@ -241,7 +241,7 @@
      GIOStatus status = G_IO_STATUS_NORMAL;
  

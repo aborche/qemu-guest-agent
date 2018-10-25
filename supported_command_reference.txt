@@ -81,9 +81,9 @@
         "success-response": true
       },
       {
-        "enabled": false,
+        "enabled": true,
         "name": "guest-network-get-interfaces",
-	"freebsd-support": false,
+	"freebsd-support": true,
         "success-response": true
       },
       {
