@@ -1,6 +1,7 @@
 #!/bin/sh
 #
 # PROVIDE: qemu_guest_agent
+# REQUIRE: DAEMON
 # KEYWORD: FreeBSD
 #
 
