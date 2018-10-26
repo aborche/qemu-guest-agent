@@ -1,0 +1,217 @@
+{
+  "return": {
+    "version": "2.12.0",
+    "supported_commands": [
+      {
+        "enabled": true,
+        "name": "guest-get-osinfo",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-get-timezone",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-get-users",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-get-host-name",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-exec",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-exec-status",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-get-memory-block-info",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-set-memory-blocks",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-get-memory-blocks",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-set-user-password",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-get-fsinfo",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-set-vcpus",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-get-vcpus",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-network-get-interfaces",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-suspend-hybrid",
+	"freebsd-support": false,
+        "success-response": false
+      },
+      {
+        "enabled": false,
+        "name": "guest-suspend-ram",
+	"freebsd-support": false,
+        "success-response": false
+      },
+      {
+        "enabled": false,
+        "name": "guest-suspend-disk",
+	"freebsd-support": false,
+        "success-response": false
+      },
+      {
+        "enabled": false,
+        "name": "guest-fstrim",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-fsfreeze-thaw",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-fsfreeze-freeze-list",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-fsfreeze-freeze",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": false,
+        "name": "guest-fsfreeze-status",
+	"freebsd-support": false,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-flush",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-seek",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-write",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-read",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-close",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-file-open",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-shutdown",
+	"freebsd-support": true,
+        "success-response": false
+      },
+      {
+        "enabled": true,
+        "name": "guest-info",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-set-time",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-get-time",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-ping",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-sync",
+	"freebsd-support": true,
+        "success-response": true
+      },
+      {
+        "enabled": true,
+        "name": "guest-sync-delimited",
+	"freebsd-support": true,
+        "success-response": true
+      }
+    ]
+  }
+}

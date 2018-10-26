@@ -1,217 +1,37 @@
-{
-  "return": {
-    "version": "2.12.0",
-    "supported_commands": [
-      {
-        "enabled": true,
-        "name": "guest-get-osinfo",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-get-timezone",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-get-users",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-get-host-name",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-exec",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-exec-status",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-get-memory-block-info",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-set-memory-blocks",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-get-memory-blocks",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-set-user-password",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-get-fsinfo",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-set-vcpus",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-get-vcpus",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-network-get-interfaces",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-suspend-hybrid",
-	"freebsd-support": false,
-        "success-response": false
-      },
-      {
-        "enabled": false,
-        "name": "guest-suspend-ram",
-	"freebsd-support": false,
-        "success-response": false
-      },
-      {
-        "enabled": false,
-        "name": "guest-suspend-disk",
-	"freebsd-support": false,
-        "success-response": false
-      },
-      {
-        "enabled": false,
-        "name": "guest-fstrim",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-fsfreeze-thaw",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-fsfreeze-freeze-list",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-fsfreeze-freeze",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": false,
-        "name": "guest-fsfreeze-status",
-	"freebsd-support": false,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-flush",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-seek",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-write",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-read",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-close",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-file-open",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-shutdown",
-	"freebsd-support": true,
-        "success-response": false
-      },
-      {
-        "enabled": true,
-        "name": "guest-info",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-set-time",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-get-time",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-ping",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-sync",
-	"freebsd-support": true,
-        "success-response": true
-      },
-      {
-        "enabled": true,
-        "name": "guest-sync-delimited",
-	"freebsd-support": true,
-        "success-response": true
-      }
-    ]
-  }
-}
+| name                            | enabled   | freebsd-support   | success-response   |
+|:--------------------------------|:----------|:------------------|:-------------------|
+| guest-get-osinfo                | True      | True              | True               |
+| guest-get-timezone              | True      | True              | True               |
+| guest-get-users                 | True      | True              | True               |
+| guest-get-host-name             | True      | True              | True               |
+| guest-exec                      | True      | True              | True               |
+| guest-exec-status               | True      | True              | True               |
+| ~~guest-get-memory-block-info~~ | True      | **False**         | True               |
+| ~~guest-set-memory-blocks~~     | False     | **False**         | True               |
+| ~~guest-get-memory-blocks~~     | False     | **False**         | True               |
+| ~~guest-set-user-password~~     | True      | **False**         | True               |
+| ~~guest-get-fsinfo~~            | False     | **False**         | True               |
+| ~~guest-set-vcpus~~             | False     | **False**         | True               |
+| ~~guest-get-vcpus~~             | False     | **False**         | True               |
+| guest-network-get-interfaces    | True      | True              | True               |
+| ~~guest-suspend-hybrid~~        | False     | **False**         | False              |
+| ~~guest-suspend-ram~~           | False     | **False**         | False              |
+| ~~guest-suspend-disk~~          | False     | **False**         | False              |
+| ~~guest-fstrim~~                | False     | **False**         | True               |
+| ~~guest-fsfreeze-thaw~~         | False     | **False**         | True               |
+| ~~guest-fsfreeze-freeze-list~~  | False     | **False**         | True               |
+| ~~guest-fsfreeze-freeze~~       | False     | **False**         | True               |
+| ~~guest-fsfreeze-status~~       | False     | **False**         | True               |
+| guest-file-flush                | True      | True              | True               |
+| guest-file-seek                 | True      | True              | True               |
+| guest-file-write                | True      | True              | True               |
+| guest-file-read                 | True      | True              | True               |
+| guest-file-close                | True      | True              | True               |
+| guest-file-open                 | True      | True              | True               |
+| guest-shutdown                  | True      | True              | False              |
+| guest-info                      | True      | True              | True               |
+| guest-set-time                  | True      | True              | True               |
+| guest-get-time                  | True      | True              | True               |
+| guest-ping                      | True      | True              | True               |
+| guest-sync                      | True      | True              | True               |
+| guest-sync-delimited            | True      | True              | True               |
