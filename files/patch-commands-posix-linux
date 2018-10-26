@@ -1,5 +1,5 @@
---- qga/commands-posix-linux.c.orig	2018-10-25 17:38:26.855731000 +0000
-+++ qga/commands-posix-linux.c	2018-10-25 12:40:00.743190000 +0000
+--- qga/commands-posix-linux.c.orig	2018-10-26 16:27:15.674540000 +0300
++++ qga/commands-posix-linux.c	2018-10-26 16:29:36.442915000 +0300
 @@ -0,0 +1,1948 @@
 +/*
 + * QEMU Guest Agent Linux POSIX-specific command implementations
@@ -1921,13 +1921,13 @@
 +    return -1;
 +}
 +
-+void qmp_guest_set_user_password(const char *username,
++/* void qmp_guest_set_user_password(const char *username,
 +                                 const char *password,
 +                                 bool crypted,
 +                                 Error **errp)
 +{
 +    error_setg(errp, QERR_UNSUPPORTED);
-+}
++} */
 +
 +GuestMemoryBlockList *qmp_guest_get_memory_blocks(Error **errp)
 +{

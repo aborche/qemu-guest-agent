@@ -59,7 +59,7 @@
       {
         "enabled": true,
         "name": "guest-set-user-password",
-	"freebsd-support": false,
+	"freebsd-support": true,
         "success-response": true
       },
       {

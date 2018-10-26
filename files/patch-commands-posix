@@ -1,5 +1,5 @@
---- qga/commands-posix.c.orig	2018-04-24 16:30:47.000000000 +0000
-+++ qga/commands-posix.c	2018-10-25 18:11:40.538689000 +0000
+--- qga/commands-posix.c.orig	2018-04-24 19:30:47.000000000 +0300
++++ qga/commands-posix.c	2018-10-26 16:19:00.415383000 +0300
 @@ -26,6 +26,20 @@
  #include "qemu/base64.h"
  #include "qemu/cutils.h"
@@ -114,7 +114,7 @@
  }
  
  typedef enum {
-@@ -613,2106 +588,220 @@
+@@ -613,963 +588,575 @@
      }
  }
  
@@ -679,7 +679,10 @@
 +            *p2 = 0;
              break;
          }
--
++        *(p2++) = *(p++);
++    }
++}
+ 
 -        if (entry->d_type == DT_LNK) {
 -            char *path;
 -
@@ -702,26 +705,43 @@
 -static void build_guest_fsinfo_for_device(char const *devpath,
 -                                          GuestFilesystemInfo *fs,
 -                                          Error **errp)
--{
++static GKeyFile *ga_parse_osrelease(const char *fname)
+ {
 -    char *syspath = realpath(devpath, NULL);
--
++    gchar *content = NULL;
++    gchar *content2 = NULL;
++    GError *err = NULL;
++    GKeyFile *keys = g_key_file_new();
++    const char *group = "[os-release]\n";
+ 
 -    if (!syspath) {
 -        error_setg_errno(errp, errno, "realpath(\"%s\")", devpath);
 -        return;
--    }
--
++    if (!g_file_get_contents(fname, &content, NULL, &err)) {
++        slog("failed to read '%s', error: %s", fname, err->message);
++        goto fail;
+     }
+ 
 -    if (!fs->name) {
 -        fs->name = g_path_get_basename(syspath);
--    }
--
++    if (!g_utf8_validate(content, -1, NULL)) {
++        slog("file is not utf-8 encoded: %s", fname);
++        goto fail;
+     }
++    content2 = g_strdup_printf("%s%s", group, content);
+ 
 -    g_debug("  parse sysfs path '%s'", syspath);
 -
 -    if (strstr(syspath, "/devices/virtual/block/")) {
 -        build_guest_fsinfo_for_virtual_device(syspath, fs, errp);
 -    } else {
 -        build_guest_fsinfo_for_real_device(syspath, fs, errp);
--    }
--
++    if (!g_key_file_load_from_data(keys, content2, -1, G_KEY_FILE_NONE,
++                                   &err)) {
++        slog("failed to parse file '%s', error: %s", fname, err->message);
++        goto fail;
+     }
+ 
 -    free(syspath);
 -}
 -
@@ -736,28 +756,53 @@
 -    fs->mountpoint = g_strdup(mount->dirname);
 -    fs->type = g_strdup(mount->devtype);
 -    build_guest_fsinfo_for_device(devpath, fs, errp);
--
++    g_free(content);
++    g_free(content2);
++    return keys;
+ 
 -    g_free(devpath);
 -    return fs;
--}
--
++fail:
++    g_error_free(err);
++    g_free(content);
++    g_free(content2);
++    g_key_file_free(keys);
++    return NULL;
+ }
+ 
 -GuestFilesystemInfoList *qmp_guest_get_fsinfo(Error **errp)
--{
++GuestOSInfo *qmp_guest_get_osinfo(Error **errp)
+ {
 -    FsMountList mounts;
 -    struct FsMount *mount;
 -    GuestFilesystemInfoList *new, *ret = NULL;
 -    Error *local_err = NULL;
--
++    GuestOSInfo *info = NULL;
++    struct utsname kinfo;
++    GKeyFile *osrelease = NULL;
++    const char *qga_os_release = g_getenv("QGA_OS_RELEASE");
+ 
 -    QTAILQ_INIT(&mounts);
 -    build_fs_mount_list(&mounts, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return NULL;
 -    }
--
++    info = g_new0(GuestOSInfo, 1);
+ 
 -    QTAILQ_FOREACH(mount, &mounts, next) {
 -        g_debug("Building guest fsinfo for '%s'", mount->dirname);
--
++    if (uname(&kinfo) != 0) {
++        error_setg_errno(errp, errno, "uname failed");
++    } else {
++        info->has_kernel_version = true;
++        info->kernel_version = g_strdup(kinfo.version);
++        info->has_kernel_release = true;
++        info->kernel_release = g_strdup(kinfo.release);
++        info->has_machine = true;
++        info->machine = g_strdup(kinfo.machine);
++    }
+ 
 -        new = g_malloc0(sizeof(*ret));
 -        new->value = build_guest_fsinfo(mount, &local_err);
 -        new->next = ret;
@@ -767,9 +812,15 @@
 -            qapi_free_GuestFilesystemInfoList(ret);
 -            ret = NULL;
 -            break;
--        }
--    }
--
++    if (qga_os_release != NULL) {
++        osrelease = ga_parse_osrelease(qga_os_release);
++    } else {
++        osrelease = ga_parse_osrelease("/etc/os-release");
++        if (osrelease == NULL) {
++            osrelease = ga_parse_osrelease("/usr/lib/os-release");
+         }
+     }
+ 
 -    free_fs_mount_list(&mounts);
 -    return ret;
 -}
@@ -801,7 +852,9 @@
 -        error_setg_errno(errp, errno, "can't access fsfreeze hook '%s'", hook);
 -        return;
 -    }
--
++    if (osrelease != NULL) {
++        char *value;
+ 
 -    slog("executing fsfreeze hook with arg '%s'", arg_str);
 -    pid = fork();
 -    if (pid == 0) {
@@ -809,49 +862,81 @@
 -        reopen_fd_to_null(0);
 -        reopen_fd_to_null(1);
 -        reopen_fd_to_null(2);
--
++#define GET_FIELD(field, osfield) do { \
++    value = g_key_file_get_value(osrelease, "os-release", osfield, NULL); \
++    if (value != NULL) { \
++        ga_osrelease_replace_special(value); \
++        info->has_ ## field = true; \
++        info->field = value; \
++    } \
++} while (0)
++        GET_FIELD(id, "ID");
++        GET_FIELD(name, "NAME");
++        GET_FIELD(pretty_name, "PRETTY_NAME");
++        GET_FIELD(version, "VERSION");
++        GET_FIELD(version_id, "VERSION_ID");
++        GET_FIELD(variant, "VARIANT");
++        GET_FIELD(variant_id, "VARIANT_ID");
++#undef GET_FIELD
+ 
 -        execle(hook, hook, arg_str, NULL, environ);
 -        _exit(EXIT_FAILURE);
 -    } else if (pid < 0) {
 -        error_setg_errno(errp, errno, "failed to create child process");
 -        return;
--    }
--
++        g_key_file_free(osrelease);
+     }
+ 
 -    ga_wait_child(pid, &status, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return;
 -    }
--
++    return info;
++}
+ 
 -    if (!WIFEXITED(status)) {
 -        error_setg(errp, "fsfreeze hook has terminated abnormally");
 -        return;
 -    }
--
++/* FreeBSD Functions */
+ 
 -    status = WEXITSTATUS(status);
 -    if (status) {
 -        error_setg(errp, "fsfreeze hook has failed with status %d", status);
 -        return;
 -    }
 -}
--
++#if !defined(__linux__) && !defined(_WIN32)
+ 
 -/*
 - * Return status of freeze/thaw
 - */
 -GuestFsfreezeStatus qmp_guest_fsfreeze_status(Error **errp)
--{
++static GuestNetworkInterfaceList *
++guest_find_interface(GuestNetworkInterfaceList *head,
++                     const char *name)
+ {
 -    if (ga_is_frozen(ga_state)) {
 -        return GUEST_FSFREEZE_STATUS_FROZEN;
--    }
--
++    for (; head; head = head->next) {
++        if (strcmp(head->value->name, name) == 0) {
++            break;
++        }
+     }
+ 
 -    return GUEST_FSFREEZE_STATUS_THAWED;
--}
--
++    return head;
+ }
+ 
 -int64_t qmp_guest_fsfreeze_freeze(Error **errp)
--{
++static int guest_get_network_stats(const char *name,
++                       GuestNetworkInterfaceStat *stats)
+ {
 -    return qmp_guest_fsfreeze_freeze_list(false, NULL, errp);
--}
--
++	return -1;
+ }
+ 
 -/*
 - * Walk list of mounted file systems in the guest, and freeze the ones which
 - * are real local file systems.
@@ -859,7 +944,8 @@
 -int64_t qmp_guest_fsfreeze_freeze_list(bool has_mountpoints,
 -                                       strList *mountpoints,
 -                                       Error **errp)
--{
++GuestNetworkInterfaceList *qmp_guest_network_get_interfaces(Error **errp)
+ {
 -    int ret = 0, i = 0;
 -    strList *list;
 -    FsMountList mounts;
@@ -868,23 +954,42 @@
 -    int fd;
 -
 -    slog("guest-fsfreeze called");
--
++    GuestNetworkInterfaceList *head = NULL, *cur_item = NULL;
++    struct ifaddrs *ifap, *ifa;
+ 
 -    execute_fsfreeze_hook(FSFREEZE_HOOK_FREEZE, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return -1;
--    }
--
++    if (getifaddrs(&ifap) < 0) {
++        error_setg_errno(errp, errno, "getifaddrs failed");
++        goto error;
+     }
+ 
 -    QTAILQ_INIT(&mounts);
 -    build_fs_mount_list(&mounts, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return -1;
 -    }
--
++    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
++        GuestNetworkInterfaceList *info;
++        GuestIpAddressList **address_list = NULL, *address_item = NULL;
++        GuestNetworkInterfaceStat  *interface_stat = NULL;
++        char addr4[INET_ADDRSTRLEN];
++        char addr6[INET6_ADDRSTRLEN];
++        int sock;
++        struct ifreq ifr;
++        // struct ifnet ifp;
++        // struct if_data ifd;
++        // unsigned char *mac_addr;
++        char mac_addr[18]="00:00:00:00:00:00"; // = char[18];
++        void *p;
+ 
 -    /* cannot risk guest agent blocking itself on a write in this state */
 -    ga_set_frozen(ga_state);
--
++        g_debug("Processing %s interface", ifa->ifa_name);
+ 
 -    QTAILQ_FOREACH_REVERSE(mount, &mounts, FsMountList, next) {
 -        /* To issue fsfreeze in the reverse order of mounts, check if the
 -         * mount is listed in the list here */
@@ -898,13 +1003,18 @@
 -                continue;
 -            }
 -        }
--
++        info = guest_find_interface(head, ifa->ifa_name);
+ 
 -        fd = qemu_open(mount->dirname, O_RDONLY);
 -        if (fd == -1) {
 -            error_setg_errno(errp, errno, "failed to open %s", mount->dirname);
 -            goto error;
 -        }
--
++        if (!info) {
++            info = g_malloc0(sizeof(*info));
++            info->value = g_malloc0(sizeof(*info->value));
++            info->value->name = g_strdup(ifa->ifa_name);
+ 
 -        /* we try to cull filesystems we know won't work in advance, but other
 -         * filesystems may not implement fsfreeze for less obvious reasons.
 -         * these will report EOPNOTSUPP. we simply ignore these when tallying
@@ -924,13 +1034,18 @@
 -                                 mount->dirname);
 -                close(fd);
 -                goto error;
--            }
++            if (!cur_item) {
++                head = cur_item = info;
++            } else {
++                cur_item->next = info;
++                cur_item = info;
+             }
 -        } else {
 -            i++;
--        }
+         }
 -        close(fd);
 -    }
--
+ 
 -    free_fs_mount_list(&mounts);
 -    return i;
 -
@@ -939,7 +1054,16 @@
 -    qmp_guest_fsfreeze_thaw(NULL);
 -    return 0;
 -}
--
++        if (!info->value->has_hardware_address &&
++            ifa->ifa_flags & SIOCGHWADDR) {
++            /* we haven't obtained HW address yet */
++            sock = socket(PF_INET, SOCK_STREAM, 0);
++            if (sock == -1) {
++                error_setg_errno(errp, errno, "failed to create socket");
++                goto error;
++            }
++            close(sock);
+ 
 -/*
 - * Walk list of frozen file systems in the guest, and thaw them.
 - */
@@ -950,20 +1074,41 @@
 -    FsMount *mount;
 -    int fd, i = 0, logged;
 -    Error *local_err = NULL;
--
++            memset(&ifr, 0, sizeof(ifr));
++            pstrcpy(ifr.ifr_name, IF_NAMESIZE, info->value->name);
++            // memset(&ifp, 0, sizeof(ifp));
++            // memset(&ifd, 0, sizeof(ifd));
+ 
 -    QTAILQ_INIT(&mounts);
 -    build_fs_mount_list(&mounts, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return 0;
 -    }
--
++            if (ifa->ifa_addr->sa_family == AF_LINK) {
++            	struct sockaddr_dl *sdl =
++            			(struct sockaddr_dl *)ifa->ifa_addr;
++
++                info->value->has_hardware_address = false;
++                
++                if (sdl->sdl_type == IFT_ETHER &&
++                		sdl->sdl_alen == ETHER_ADDR_LEN) {
++                        snprintf(mac_addr, 18, "%s", ether_ntoa((struct ether_addr *)LLADDR(sdl)));
++                        info->value->has_hardware_address = true;
++                }
++                else
++                {
++                    info->value->has_hardware_address = true;
++                } 
++                info->value->hardware_address = g_strdup_printf("%s", mac_addr);
++             }
+ 
 -    QTAILQ_FOREACH(mount, &mounts, next) {
 -        logged = false;
 -        fd = qemu_open(mount->dirname, O_RDONLY);
 -        if (fd == -1) {
 -            continue;
--        }
+         }
 -        /* we have no way of knowing whether a filesystem was actually unfrozen
 -         * as a result of a successful call to FITHAW, only that if an error
 -         * was returned the filesystem was *not* unfrozen by that particular
@@ -989,19 +1134,49 @@
 -        } while (ret == 0);
 -        close(fd);
 -    }
--
+ 
 -    ga_unset_frozen(ga_state);
 -    free_fs_mount_list(&mounts);
--
++        if (ifa->ifa_addr &&
++            ifa->ifa_addr->sa_family == AF_INET) {
++            /* interface with IPv4 address */
++            p = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
++            if (!inet_ntop(AF_INET, p, addr4, sizeof(addr4))) {
++                error_setg_errno(errp, errno, "inet_ntop failed");
++                goto error;
++            }
+ 
 -    execute_fsfreeze_hook(FSFREEZE_HOOK_THAW, errp);
--
++            address_item = g_malloc0(sizeof(*address_item));
++            address_item->value = g_malloc0(sizeof(*address_item->value));
++            address_item->value->ip_address = g_strdup(addr4);
++            address_item->value->ip_address_type = GUEST_IP_ADDRESS_TYPE_IPV4;
+ 
 -    return i;
 -}
--
++            if (ifa->ifa_netmask) {
++                /* Count the number of set bits in netmask.
++                 * This is safe as '1' and '0' cannot be shuffled in netmask. */
++                p = &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr;
++                address_item->value->prefix = ctpop32(((uint32_t *) p)[0]);
++            }
++        } else if (ifa->ifa_addr &&
++                   ifa->ifa_addr->sa_family == AF_INET6) {
++            /* interface with IPv6 address */
++            p = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
++            if (!inet_ntop(AF_INET6, p, addr6, sizeof(addr6))) {
++                error_setg_errno(errp, errno, "inet_ntop failed");
++                goto error;
++            }
+ 
 -static void guest_fsfreeze_cleanup(void)
 -{
 -    Error *err = NULL;
--
++            address_item = g_malloc0(sizeof(*address_item));
++            address_item->value = g_malloc0(sizeof(*address_item->value));
++            address_item->value->ip_address = g_strdup(addr6);
++            address_item->value->ip_address_type = GUEST_IP_ADDRESS_TYPE_IPV6;
+ 
 -    if (ga_is_frozen(ga_state) == GUEST_FSFREEZE_STATUS_FROZEN) {
 -        qmp_guest_fsfreeze_thaw(&err);
 -        if (err) {
@@ -1031,16 +1206,31 @@
 -    struct fstrim_range r;
 -
 -    slog("guest-fstrim called");
--
++            if (ifa->ifa_netmask) {
++                /* Count the number of set bits in netmask.
++                 * This is safe as '1' and '0' cannot be shuffled in netmask. */
++                p = &((struct sockaddr_in6 *)ifa->ifa_netmask)->sin6_addr;
++                address_item->value->prefix =
++                    ctpop32(((uint32_t *) p)[0]) +
++                    ctpop32(((uint32_t *) p)[1]) +
++                    ctpop32(((uint32_t *) p)[2]) +
++                    ctpop32(((uint32_t *) p)[3]);
++            }
++        }
+ 
 -    QTAILQ_INIT(&mounts);
 -    build_fs_mount_list(&mounts, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
 -        return NULL;
 -    }
--
++        if (!address_item) {
++            continue;
++        }
+ 
 -    response = g_malloc0(sizeof(*response));
--
++        address_list = &info->value->ip_addresses;
+ 
 -    QTAILQ_FOREACH(mount, &mounts, next) {
 -        result = g_malloc0(sizeof(*result));
 -        result->path = g_strdup(mount->dirname);
@@ -1049,15 +1239,22 @@
 -        list->value = result;
 -        list->next = response->paths;
 -        response->paths = list;
--
++        while (*address_list && (*address_list)->next) {
++            address_list = &(*address_list)->next;
++        }
+ 
 -        fd = qemu_open(mount->dirname, O_RDONLY);
 -        if (fd == -1) {
 -            result->error = g_strdup_printf("failed to open: %s",
 -                                            strerror(errno));
 -            result->has_error = true;
 -            continue;
--        }
--
++        if (!*address_list) {
++            *address_list = address_item;
++        } else {
++            (*address_list)->next = address_item;
+         }
+ 
 -        /* We try to cull filesystems we know won't work in advance, but other
 -         * filesystems may not implement fstrim for less obvious reasons.
 -         * These will report EOPNOTSUPP; while in some other cases ENOTTY
@@ -1072,39 +1269,66 @@
 -            result->has_error = true;
 -            if (errno == ENOTTY || errno == EOPNOTSUPP) {
 -                result->error = g_strdup("trim not supported");
--            } else {
++        info->value->has_ip_addresses = true;
++
++        if (!info->value->has_statistics) {
++            interface_stat = g_malloc0(sizeof(*interface_stat));
++            if (guest_get_network_stats(info->value->name,
++                interface_stat) == -1) {
++                info->value->has_statistics = false;
++                g_free(interface_stat);
+             } else {
 -                result->error = g_strdup_printf("failed to trim: %s",
 -                                                strerror(errno));
--            }
++                info->value->statistics = interface_stat;
++                info->value->has_statistics = true;
+             }
 -            close(fd);
 -            continue;
--        }
+         }
 -
 -        result->has_minimum = true;
 -        result->minimum = r.minlen;
 -        result->has_trimmed = true;
 -        result->trimmed = r.len;
 -        close(fd);
--    }
--
+     }
+ 
 -    free_fs_mount_list(&mounts);
 -    return response;
 -}
 -#endif /* CONFIG_FSTRIM */
 -
--
++    freeifaddrs(ifap);
++    return head;
+ 
 -#define LINUX_SYS_STATE_FILE "/sys/power/state"
 -#define SUSPEND_SUPPORTED 0
 -#define SUSPEND_NOT_SUPPORTED 1
--
++error:
++    freeifaddrs(ifap);
++    qapi_free_GuestNetworkInterfaceList(head);
++    return NULL;
++}
+ 
 -static void bios_supports_mode(const char *pmutils_bin, const char *pmutils_arg,
 -                               const char *sysfile_str, Error **errp)
--{
--    Error *local_err = NULL;
++void qmp_guest_set_user_password(const char *username,
++                                 const char *password,
++                                 bool crypted,
++                                 Error **errp)
+ {
+     Error *local_err = NULL;
 -    char *pmutils_path;
--    pid_t pid;
--    int status;
--
++    char *pw_path = NULL;
+     pid_t pid;
+     int status;
++    int datafd[2] = { -1, -1 };
++    char *rawpasswddata = NULL;
++    size_t rawpasswdlen;
++    char *chpasswddata = NULL;
++    size_t chpasswdlen;
+ 
 -    pmutils_path = g_find_program_in_path(pmutils_bin);
 -
 -    pid = fork();
@@ -1141,28 +1365,46 @@
 -            _exit(SUSPEND_NOT_SUPPORTED);
 -        }
 -        buf[ret] = '\0';
--
++    rawpasswddata = (char *)qbase64_decode(password, -1, &rawpasswdlen, errp);
++    if (!rawpasswddata) {
++        return;
++    }
+ 
 -        if (strstr(buf, sysfile_str)) {
 -            _exit(SUSPEND_SUPPORTED);
 -        }
--
++    rawpasswddata = g_renew(char, rawpasswddata, rawpasswdlen + 1);
++    rawpasswddata[rawpasswdlen] = '\0';
+ 
 -        _exit(SUSPEND_NOT_SUPPORTED);
 -    } else if (pid < 0) {
 -        error_setg_errno(errp, errno, "failed to create child process");
--        goto out;
--    }
--
++    if (strchr(rawpasswddata, '\n')) {
++        error_setg(errp, "forbidden characters in raw password");
+         goto out;
+     }
+ 
 -    ga_wait_child(pid, &status, &local_err);
 -    if (local_err) {
 -        error_propagate(errp, local_err);
--        goto out;
--    }
--
++    if (strchr(username, '\n') ||
++        strchr(username, ':')) {
++        error_setg(errp, "forbidden characters in username");
+         goto out;
+     }
+ 
 -    if (!WIFEXITED(status)) {
 -        error_setg(errp, "child process has terminated abnormally");
--        goto out;
--    }
--
++    chpasswddata = g_strdup_printf("%s", rawpasswddata);
++    chpasswdlen = strlen(chpasswddata);
++
++    pw_path = g_find_program_in_path("pw");
++
++    if (!pw_path) {
++        error_setg(errp, "cannot find 'pw' program in PATH");
+         goto out;
+     }
+ 
 -    switch (WEXITSTATUS(status)) {
 -    case SUSPEND_SUPPORTED:
 -        goto out;
@@ -1174,9 +1416,11 @@
 -        error_setg(errp,
 -                   "the helper program '%s' returned an unexpected exit status"
 -                   " code (%d)", pmutils_path, WEXITSTATUS(status));
--        goto out;
--    }
--
++    if (pipe(datafd) < 0) {
++        error_setg(errp, "cannot create pipe FDs");
+         goto out;
+     }
+ 
 -out:
 -    g_free(pmutils_path);
 -}
@@ -1191,16 +1435,18 @@
 -
 -    pmutils_path = g_find_program_in_path(pmutils_bin);
 -
--    pid = fork();
--    if (pid == 0) {
--        /* child */
+     pid = fork();
+     if (pid == 0) {
++        close(datafd[1]);
+         /* child */
 -        int fd;
 -
--        setsid();
+         setsid();
 -        reopen_fd_to_null(0);
--        reopen_fd_to_null(1);
--        reopen_fd_to_null(2);
--
++        dup2(datafd[0], 0);
+         reopen_fd_to_null(1);
+         reopen_fd_to_null(2);
+ 
 -        if (pmutils_path) {
 -            execle(pmutils_path, pmutils_bin, NULL, environ);
 -        }
@@ -1221,31 +1467,40 @@
 -
 -        if (write(fd, sysfile_str, strlen(sysfile_str)) < 0) {
 -            _exit(EXIT_FAILURE);
--        }
++        if (crypted) {
++            execle(pw_path, "pw", "usermod", username, "-H", "0", (char*)NULL, environ);
++        } else {
++            execle(pw_path, "pw", "usermod", username, "-h", "0", (char*)NULL, environ);
+         }
 -
 -        _exit(EXIT_SUCCESS);
--    } else if (pid < 0) {
--        error_setg_errno(errp, errno, "failed to create child process");
--        goto out;
--    }
--
--    ga_wait_child(pid, &status, &local_err);
--    if (local_err) {
--        error_propagate(errp, local_err);
--        goto out;
--    }
--
--    if (!WIFEXITED(status)) {
--        error_setg(errp, "child process has terminated abnormally");
--        goto out;
--    }
--
--    if (WEXITSTATUS(status)) {
++        _exit(EXIT_FAILURE);
+     } else if (pid < 0) {
+         error_setg_errno(errp, errno, "failed to create child process");
+         goto out;
+     }
++    close(datafd[0]);
++    datafd[0] = -1;
++
++    if (qemu_write_full(datafd[1], chpasswddata, chpasswdlen) != chpasswdlen) {
++        error_setg_errno(errp, errno, "cannot write new account password");
++        goto out;
++    }
++    close(datafd[1]);
++    datafd[1] = -1;
+ 
+     ga_wait_child(pid, &status, &local_err);
+     if (local_err) {
+@@ -1583,1225 +1170,21 @@
+     }
+ 
+     if (WEXITSTATUS(status)) {
 -        error_setg(errp, "child process has failed to suspend");
--        goto out;
--    }
--
--out:
++        error_setg(errp, "child process has failed to set user password");
+         goto out;
+     }
+ 
+ out:
 -    g_free(pmutils_path);
 -}
 -
@@ -1297,7 +1552,12 @@
 -        if (strcmp(head->value->name, name) == 0) {
 -            break;
 -        }
--    }
++    g_free(chpasswddata);
++    g_free(rawpasswddata);
++    g_free(pw_path);
++    if (datafd[0] != -1) {
++        close(datafd[0]);
+     }
 -
 -    return head;
 -}
@@ -1313,7 +1573,9 @@
 -    fp = fopen(devinfo, "r");
 -    if (!fp) {
 -        return -1;
--    }
++    if (datafd[1] != -1) {
++        close(datafd[1]);
+     }
 -    name_len = strlen(name);
 -    while (getline(&line, &n, fp) != -1) {
 -        long long dummy;
@@ -1361,8 +1623,8 @@
 -    g_free(line);
 -    g_debug("/proc/net/dev: Interface '%s' not found", name);
 -    return -1;
--}
--
+ }
+ 
 -/*
 - * Build information about guest interfaces
 - */
@@ -2322,8 +2584,8 @@
 -    error_setg(errp, QERR_UNSUPPORTED);
 -    return NULL;
 -}
--
--#endif
+ 
+ #endif
 -
 -/* Replace escaped special characters with theire real values. The replacement
 - * is done in place -- returned value is in the original string.
@@ -2371,200 +2633,95 @@
 -        *(p2++) = *(p++);
 -    }
 -}
-+        *(p2++) = *(p++);
-+    }
-+}
- 
- static GKeyFile *ga_parse_osrelease(const char *fname)
- {
-@@ -2805,3 +894,190 @@
- 
-     return info;
- }
-+
-+/* FreeBSD Functions */
-+
-+#if !defined(__linux__) && !defined(_WIN32)
-+
-+static GuestNetworkInterfaceList *
-+guest_find_interface(GuestNetworkInterfaceList *head,
-+                     const char *name)
-+{
-+    for (; head; head = head->next) {
-+        if (strcmp(head->value->name, name) == 0) {
-+            break;
-+        }
-+    }
-+
-+    return head;
-+}
-+
-+static int guest_get_network_stats(const char *name,
-+                       GuestNetworkInterfaceStat *stats)
-+{
-+	return -1;
-+}
-+
-+GuestNetworkInterfaceList *qmp_guest_network_get_interfaces(Error **errp)
-+{
-+    GuestNetworkInterfaceList *head = NULL, *cur_item = NULL;
-+    struct ifaddrs *ifap, *ifa;
-+
-+    if (getifaddrs(&ifap) < 0) {
-+        error_setg_errno(errp, errno, "getifaddrs failed");
-+        goto error;
-+    }
-+
-+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-+        GuestNetworkInterfaceList *info;
-+        GuestIpAddressList **address_list = NULL, *address_item = NULL;
-+        GuestNetworkInterfaceStat  *interface_stat = NULL;
-+        char addr4[INET_ADDRSTRLEN];
-+        char addr6[INET6_ADDRSTRLEN];
-+        int sock;
-+        struct ifreq ifr;
-+        struct ifnet ifp;
-+        struct if_data ifd;
-+        // unsigned char *mac_addr;
-+        char mac_addr[18]="00:00:00:00:00:00"; // = char[18];
-+        void *p;
-+
-+        g_debug("Processing %s interface", ifa->ifa_name);
-+
-+        info = guest_find_interface(head, ifa->ifa_name);
-+
-+        if (!info) {
-+            info = g_malloc0(sizeof(*info));
-+            info->value = g_malloc0(sizeof(*info->value));
-+            info->value->name = g_strdup(ifa->ifa_name);
-+
-+            if (!cur_item) {
-+                head = cur_item = info;
-+            } else {
-+                cur_item->next = info;
-+                cur_item = info;
-+            }
-+        }
-+
-+        if (!info->value->has_hardware_address &&
-+            ifa->ifa_flags & SIOCGHWADDR) {
-+            /* we haven't obtained HW address yet */
-+            sock = socket(PF_INET, SOCK_STREAM, 0);
-+            if (sock == -1) {
-+                error_setg_errno(errp, errno, "failed to create socket");
-+                goto error;
-+            }
-+            close(sock);
-+
-+            memset(&ifr, 0, sizeof(ifr));
-+            pstrcpy(ifr.ifr_name, IF_NAMESIZE, info->value->name);
-+            // memset(&ifp, 0, sizeof(ifp));
-+            // memset(&ifd, 0, sizeof(ifd));
-+
-+            if (ifa->ifa_addr->sa_family == AF_LINK) {
-+            	struct sockaddr_dl *sdl =
-+            			(struct sockaddr_dl *)ifa->ifa_addr;
-+
-+                info->value->has_hardware_address = false;
-+                
-+                if (sdl->sdl_type == IFT_ETHER &&
-+                		sdl->sdl_alen == ETHER_ADDR_LEN) {
-+                        snprintf(mac_addr, 18, "%s", ether_ntoa((struct ether_addr *)LLADDR(sdl)));
-+                        info->value->has_hardware_address = true;
-+                }
-+                else
-+                {
-+                    info->value->has_hardware_address = true;
-+                } 
-+                info->value->hardware_address = g_strdup_printf("%s", mac_addr);
-+             }
-+
-+        }
-+
-+        if (ifa->ifa_addr &&
-+            ifa->ifa_addr->sa_family == AF_INET) {
-+            /* interface with IPv4 address */
-+            p = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-+            if (!inet_ntop(AF_INET, p, addr4, sizeof(addr4))) {
-+                error_setg_errno(errp, errno, "inet_ntop failed");
-+                goto error;
-+            }
-+
-+            address_item = g_malloc0(sizeof(*address_item));
-+            address_item->value = g_malloc0(sizeof(*address_item->value));
-+            address_item->value->ip_address = g_strdup(addr4);
-+            address_item->value->ip_address_type = GUEST_IP_ADDRESS_TYPE_IPV4;
-+
-+            if (ifa->ifa_netmask) {
-+                /* Count the number of set bits in netmask.
-+                 * This is safe as '1' and '0' cannot be shuffled in netmask. */
-+                p = &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr;
-+                address_item->value->prefix = ctpop32(((uint32_t *) p)[0]);
-+            }
-+        } else if (ifa->ifa_addr &&
-+                   ifa->ifa_addr->sa_family == AF_INET6) {
-+            /* interface with IPv6 address */
-+            p = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
-+            if (!inet_ntop(AF_INET6, p, addr6, sizeof(addr6))) {
-+                error_setg_errno(errp, errno, "inet_ntop failed");
-+                goto error;
-+            }
-+
-+            address_item = g_malloc0(sizeof(*address_item));
-+            address_item->value = g_malloc0(sizeof(*address_item->value));
-+            address_item->value->ip_address = g_strdup(addr6);
-+            address_item->value->ip_address_type = GUEST_IP_ADDRESS_TYPE_IPV6;
-+
-+            if (ifa->ifa_netmask) {
-+                /* Count the number of set bits in netmask.
-+                 * This is safe as '1' and '0' cannot be shuffled in netmask. */
-+                p = &((struct sockaddr_in6 *)ifa->ifa_netmask)->sin6_addr;
-+                address_item->value->prefix =
-+                    ctpop32(((uint32_t *) p)[0]) +
-+                    ctpop32(((uint32_t *) p)[1]) +
-+                    ctpop32(((uint32_t *) p)[2]) +
-+                    ctpop32(((uint32_t *) p)[3]);
-+            }
-+        }
-+
-+        if (!address_item) {
-+            continue;
-+        }
-+
-+        address_list = &info->value->ip_addresses;
-+
-+        while (*address_list && (*address_list)->next) {
-+            address_list = &(*address_list)->next;
-+        }
-+
-+        if (!*address_list) {
-+            *address_list = address_item;
-+        } else {
-+            (*address_list)->next = address_item;
-+        }
-+
-+        info->value->has_ip_addresses = true;
-+
-+        if (!info->value->has_statistics) {
-+            interface_stat = g_malloc0(sizeof(*interface_stat));
-+            if (guest_get_network_stats(info->value->name,
-+                interface_stat) == -1) {
-+                info->value->has_statistics = false;
-+                g_free(interface_stat);
-+            } else {
-+                info->value->statistics = interface_stat;
-+                info->value->has_statistics = true;
-+            }
-+        }
-+    }
-+
-+    freeifaddrs(ifap);
-+    return head;
-+
-+error:
-+    freeifaddrs(ifap);
-+    qapi_free_GuestNetworkInterfaceList(head);
-+    return NULL;
-+}
-+
-+#endif
+-
+-static GKeyFile *ga_parse_osrelease(const char *fname)
+-{
+-    gchar *content = NULL;
+-    gchar *content2 = NULL;
+-    GError *err = NULL;
+-    GKeyFile *keys = g_key_file_new();
+-    const char *group = "[os-release]\n";
+-
+-    if (!g_file_get_contents(fname, &content, NULL, &err)) {
+-        slog("failed to read '%s', error: %s", fname, err->message);
+-        goto fail;
+-    }
+-
+-    if (!g_utf8_validate(content, -1, NULL)) {
+-        slog("file is not utf-8 encoded: %s", fname);
+-        goto fail;
+-    }
+-    content2 = g_strdup_printf("%s%s", group, content);
+-
+-    if (!g_key_file_load_from_data(keys, content2, -1, G_KEY_FILE_NONE,
+-                                   &err)) {
+-        slog("failed to parse file '%s', error: %s", fname, err->message);
+-        goto fail;
+-    }
+-
+-    g_free(content);
+-    g_free(content2);
+-    return keys;
+-
+-fail:
+-    g_error_free(err);
+-    g_free(content);
+-    g_free(content2);
+-    g_key_file_free(keys);
+-    return NULL;
+-}
+-
+-GuestOSInfo *qmp_guest_get_osinfo(Error **errp)
+-{
+-    GuestOSInfo *info = NULL;
+-    struct utsname kinfo;
+-    GKeyFile *osrelease = NULL;
+-    const char *qga_os_release = g_getenv("QGA_OS_RELEASE");
+-
+-    info = g_new0(GuestOSInfo, 1);
+-
+-    if (uname(&kinfo) != 0) {
+-        error_setg_errno(errp, errno, "uname failed");
+-    } else {
+-        info->has_kernel_version = true;
+-        info->kernel_version = g_strdup(kinfo.version);
+-        info->has_kernel_release = true;
+-        info->kernel_release = g_strdup(kinfo.release);
+-        info->has_machine = true;
+-        info->machine = g_strdup(kinfo.machine);
+-    }
+-
+-    if (qga_os_release != NULL) {
+-        osrelease = ga_parse_osrelease(qga_os_release);
+-    } else {
+-        osrelease = ga_parse_osrelease("/etc/os-release");
+-        if (osrelease == NULL) {
+-            osrelease = ga_parse_osrelease("/usr/lib/os-release");
+-        }
+-    }
+-
+-    if (osrelease != NULL) {
+-        char *value;
+-
+-#define GET_FIELD(field, osfield) do { \
+-    value = g_key_file_get_value(osrelease, "os-release", osfield, NULL); \
+-    if (value != NULL) { \
+-        ga_osrelease_replace_special(value); \
+-        info->has_ ## field = true; \
+-        info->field = value; \
+-    } \
+-} while (0)
+-        GET_FIELD(id, "ID");
+-        GET_FIELD(name, "NAME");
+-        GET_FIELD(pretty_name, "PRETTY_NAME");
+-        GET_FIELD(version, "VERSION");
+-        GET_FIELD(version_id, "VERSION_ID");
+-        GET_FIELD(variant, "VARIANT");
+-        GET_FIELD(variant_id, "VARIANT_ID");
+-#undef GET_FIELD
+-
+-        g_key_file_free(osrelease);
+-    }
+-
+-    return info;
+-}
