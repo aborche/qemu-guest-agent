@@ -6,8 +6,7 @@ USE_RC_SUBR=	qemu-guest-agent
 
 HAS_CONFIGURE=	yes
 USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:bzip2
-#USES+=		gettext-runtime
-#USE_GNOME+=	glib20
+USE_GNOME+=	glib20
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
 CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
 

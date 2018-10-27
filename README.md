@@ -49,6 +49,26 @@ lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 com.redhat.spice.0 -> ../ttyV0.1
 lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 org.qemu.guest_agent.0 -> ../ttyV0.2
 ```
 
+### Before Building QEMU Guest Agent
+
+Original qemu port in ports tree require some graphic libs.
+QEMU Guest Agent doesn`t use it.
+
+Use next patch for change Makefile in /usr/ports/emulators/qemu
+```
+--- Makefile.orig       2018-10-27 17:23:47.760934000 +0300
++++ Makefile    2018-10-27 17:10:31.140104000 +0300
+@@ -23,7 +23,7 @@
+ USES?=         cpe gmake pkgconfig bison perl5 python:2.7,build tar:bzip2
+ USE_PERL5=     build
+ MAKE_ENV+=     BSD_MAKE="${MAKE}" V=1
+-.if !defined(PKGNAMESUFFIX) || ${PKGNAMESUFFIX} != "-utils"
++.if !defined(PKGNAMESUFFIX) || (${PKGNAMESUFFIX} != "-utils" && ${PKGNAMESUFFIX} != "-guest-agent")
+ USE_XORG=      pixman
+ USE_GNOME+=    cairo glib20 libxml2
+ ONLY_FOR_ARCHS=        amd64 i386 powerpc powerpc64
+```
+
 ### Installing
 
 Clone this repo and run `make` and then `make install`
@@ -61,9 +81,11 @@ qemu_guest_agent_flags="-d -v -l /var/log/qemu-ga.log"
 ```
 
 Flags means:
+```
  -d - daemon
  -v - verbose
  -l /var/log/qemu-ga.log - log all to file
+```
 
 For detailed help use `qemu-ga -h`
 
