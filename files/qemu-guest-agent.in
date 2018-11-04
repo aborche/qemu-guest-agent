@@ -2,34 +2,30 @@
 #
 # PROVIDE: qemu_guest_agent
 # REQUIRE: DAEMON
-# KEYWORD: FreeBSD
+# KEYWORD: nojail
 #
 
-qemu_guest_agent_flags=${qemu_guest_agent_flags-"-d"}
+#
+# Add the following lines to /etc/rc.conf to enable qemu-guest-agent:
+#
+#qemu_guest_agent_enable="YES"
+#
+# For detailed logging add flags -v and -l to /etc/rc.conf
+#
+#qemu_guest_agent_flags="-d -v -l /var/log/qemu-ga.log"
 
 . /etc/rc.subr
-
-qemu_guest_agent_enable=${qemu_guest_agent_enable}
 
 name=qemu_guest_agent
 rcvar=qemu_guest_agent_enable
 
-start_cmd=qemu_guest_agent_start
-stop_cmd=qemu_guest_agent_stop
+load_rc_config $name
+
+qemu_guest_agent_flags=${qemu_guest_agent_flags-"-d"}
+qemu_guest_agent_enable=${qemu_guest_agent_enable:-"NO"}
 
 qemu_guest_agent_bin=/usr/local/bin/qemu-ga
 command=${qemu_guest_agent_bin}
 pidfile="/var/run/qemu-ga.pid"
 
-qemu_guest_agent_start() {
-    checkyesno qemu_guest_agent_enable && echo "Starting QEMU Guest Agent." && \
-    	${qemu_guest_agent_bin} ${qemu_guest_agent_flags} -f ${pidfile}
-}
-
-qemu_guest_agent_stop() {
-    checkyesno qemu_guest_agent_enable && echo "Stopping QEMU Guest Agent." && \
-    	kill -9 `cat ${pidfile}`
-}
-
-load_rc_config ${name}
 run_rc_command "$1"
