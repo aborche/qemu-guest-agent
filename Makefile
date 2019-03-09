@@ -3,9 +3,10 @@ PKGNAMESUFFIX=	-guest-agent
 MAINTAINER=	zhecka@gmail.com
 COMMENT=	QEMU guest-agent utilities
 USE_RC_SUBR=	qemu-guest-agent
+FILESDIR=	${.CURDIR}/files
 
 HAS_CONFIGURE=	yes
-USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:bzip2
+USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:xz
 USE_GNOME+=	glib20
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
 CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
@@ -87,6 +88,7 @@ LIB_DEPENDS=
 # can't use post-patch, because the master port also defines that target.
 pre-configure:
 	${PATCH} ${WRKSRC}/Makefile ${.CURDIR}/files/patch-Makefile
+
 
 post-install:
 	@${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/qemu-*
