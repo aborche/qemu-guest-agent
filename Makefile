@@ -6,7 +6,8 @@ USE_RC_SUBR=	qemu-guest-agent
 FILESDIR=	${.CURDIR}/files
 
 HAS_CONFIGURE=	yes
-USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:xz
+#USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:xz
+USES=		gmake pkgconfig python:2.7,build tar:xz
 USE_GNOME+=	glib20
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
 CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
@@ -19,8 +20,8 @@ MASTERDIR=	/usr/ports/emulators/qemu
 PLIST=		${.CURDIR}/pkg-plist
 DESCR=		${.CURDIR}/pkg-descr
 EXTRA_PATCHES=	${.CURDIR}/files/patch-configure \
-		${.CURDIR}/files/patch-channel-posix ${.CURDIR}/files/patch-commands-posix \
-		${.CURDIR}/files/patch-qga-main ${.CURDIR}/files/patch-commands-posix-linux \
+		${.CURDIR}/files/patch-commands-posix \
+		${.CURDIR}/files/patch-qga-main \
 		${.CURDIR}/files/patch-qga-Makefile-objs
 PKGMESSAGE=
 
