@@ -10,7 +10,7 @@
 | ~~guest-set-memory-blocks~~     | False     | **False**         | True               |
 | ~~guest-get-memory-blocks~~     | False     | **False**         | True               |
 | guest-set-user-password         | True      | True              | True               |
-| ~~guest-get-fsinfo~~            | False     | **False**         | True               |
+| guest-get-fsinfo                | True      | True              | True               |
 | ~~guest-set-vcpus~~             | False     | **False**         | True               |
 | ~~guest-get-vcpus~~             | False     | **False**         | True               |
 | guest-network-get-interfaces    | True      | True              | True               |

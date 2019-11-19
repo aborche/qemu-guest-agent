@@ -63,9 +63,9 @@
         "success-response": true
       },
       {
-        "enabled": false,
+        "enabled": true,
         "name": "guest-get-fsinfo",
-	"freebsd-support": false,
+	"freebsd-support": true,
         "success-response": true
       },
       {

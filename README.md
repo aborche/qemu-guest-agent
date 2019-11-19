@@ -9,7 +9,7 @@ Command reference and current command support status in FreeBSD can be found [he
 
 ## Supported systems
 
-Port tested at FreeBSD 12 and FreeBSD 11.
+Port tested at FreeBSD 12
 
 ## FreeBSD 11 issues
 

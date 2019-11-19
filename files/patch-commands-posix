@@ -1,5 +1,5 @@
---- qga/command-posix.c.orig	2018-08-03 00:48:53.000000000 +0300
-+++ qga/commands-posix.c	2019-11-17 16:19:13.086749000 +0300
+--- qga/commands-posix.c.orig	2019-10-02 01:31:45.000000000 +0300
++++ qga/commands-posix.c	2019-11-20 00:17:07.778181000 +0300
 @@ -1,5 +1,5 @@
  /*
 - * QEMU Guest Agent POSIX-specific command implementations
@@ -7,9 +7,11 @@
   *
   * Copyright IBM Corp. 2011
   *
-@@ -26,6 +26,20 @@
+@@ -25,7 +25,23 @@
+ #include "qemu/sockets.h"
  #include "qemu/base64.h"
  #include "qemu/cutils.h"
++#include "mntent.h"
  
 +#if !defined(_WIN32)
 +#include <ifaddrs.h>
@@ -18,6 +20,7 @@
 +#include <net/if.h>
 +#include <sys/socket.h>
 +#include <ifaddrs.h>
++#include <sys/statvfs.h>
 +#include <net/if_dl.h>
 +#include <net/if_types.h>
 +#include <net/ethernet.h>
@@ -28,7 +31,7 @@
  #ifdef HAVE_UTMPX
  #include <utmpx.h>
  #endif
-@@ -42,7 +56,6 @@
+@@ -42,7 +58,6 @@
  #if defined(__linux__)
  #include <mntent.h>
  #include <linux/fs.h>
@@ -36,7 +39,7 @@
  #include <arpa/inet.h>
  #include <sys/socket.h>
  #include <net/if.h>
-@@ -78,14 +91,15 @@
+@@ -83,14 +98,15 @@
  {
      const char *shutdown_flag;
      Error *local_err = NULL;
@@ -54,7 +57,7 @@
      } else if (strcmp(mode, "reboot") == 0) {
          shutdown_flag = "-r";
      } else {
-@@ -101,9 +115,10 @@
+@@ -106,9 +122,10 @@
          reopen_fd_to_null(0);
          reopen_fd_to_null(1);
          reopen_fd_to_null(2);
@@ -67,7 +70,7 @@
          _exit(EXIT_FAILURE);
      } else if (pid < 0) {
          error_setg_errno(errp, errno, "failed to create child process");
-@@ -146,9 +161,6 @@
+@@ -151,9 +168,6 @@
  void qmp_guest_set_time(bool has_time, int64_t time_ns, Error **errp)
  {
      int ret;
@@ -77,7 +80,7 @@
      struct timeval tv;
  
      /* If user has passed a time, validate and set it. */
-@@ -175,43 +187,6 @@
+@@ -180,43 +194,6 @@
              return;
          }
      }
@@ -121,7 +124,7 @@
  }
  
  typedef enum {
-@@ -614,8 +589,12 @@
+@@ -619,8 +596,12 @@
  }
  
  /* linux-specific implementations. avoid this if at all possible. */
@@ -134,7 +137,7 @@
  #if defined(CONFIG_FSFREEZE) || defined(CONFIG_FSTRIM)
  typedef struct FsMount {
      char *dirname;
-@@ -2453,11 +2432,11 @@
+@@ -2627,11 +2608,11 @@
      error_setg(errp, QERR_UNSUPPORTED);
  }
  
@@ -148,7 +151,7 @@
  
  GuestLogicalProcessorList *qmp_guest_get_vcpus(Error **errp)
  {
-@@ -2471,13 +2450,13 @@
+@@ -2645,13 +2626,13 @@
      return -1;
  }
  
@@ -164,7 +167,21 @@
  
  GuestMemoryBlockList *qmp_guest_get_memory_blocks(Error **errp)
  {
-@@ -2553,9 +2532,10 @@
+@@ -2676,11 +2657,13 @@
+ 
+ #if !defined(CONFIG_FSFREEZE)
+ 
++/*
+ GuestFilesystemInfoList *qmp_guest_get_fsinfo(Error **errp)
+ {
+     error_setg(errp, QERR_UNSUPPORTED);
+     return NULL;
+ }
++*/
+ 
+ GuestFsfreezeStatus qmp_guest_fsfreeze_status(Error **errp)
+ {
+@@ -2727,9 +2710,10 @@
  {
  #if !defined(__linux__)
      {
@@ -177,7 +194,21 @@
              "guest-get-vcpus", "guest-set-vcpus",
              "guest-get-memory-blocks", "guest-set-memory-blocks",
              "guest-get-memory-block-size", NULL};
-@@ -2805,3 +2785,297 @@
+@@ -2743,10 +2727,11 @@
+ 
+ #if !defined(CONFIG_FSFREEZE)
+     {
++        //"guest-get-fsinfo", "guest-get-fsinfo",
+         const char *list[] = {
+-            "guest-get-fsinfo", "guest-fsfreeze-status",
++            "guest-fsfreeze-status",
+             "guest-fsfreeze-freeze", "guest-fsfreeze-freeze-list",
+-            "guest-fsfreeze-thaw", "guest-get-fsinfo", NULL};
++            "guest-fsfreeze-thaw",  NULL};
+         char **p = (char **)list;
+ 
+         while (*p) {
+@@ -2979,3 +2964,521 @@
  
      return info;
  }
@@ -473,5 +504,229 @@
 +    }
 +}
 +
++/* ===================================================================== */
++typedef struct FsMount {
++    char *dirname;
++    char *devtype;
++    char *size;
++    char *used;
++    char *free;
++    char *load;
++    char *mntpoint;
++    unsigned int devmajor, devminor;
++    QTAILQ_ENTRY(FsMount) next;
++} FsMount;
++
++typedef QTAILQ_HEAD(FsMountList, FsMount) FsMountList;
++
++static void free_fs_mount_list(FsMountList *mounts)
++{
++     FsMount *mount, *temp;
++
++     if (!mounts) {
++         return;
++     }
++
++     QTAILQ_FOREACH_SAFE(mount, mounts, next, temp) {
++         QTAILQ_REMOVE(mounts, mount, next);
++         g_free(mount->dirname);
++         g_free(mount->devtype);
++         g_free(mount->size);
++         g_free(mount->used);
++		 g_free(mount->free);
++		 g_free(mount->load);
++		 g_free(mount->mntpoint);
++         g_free(mount);
++     }
++}
++
++
++#define BUFSIZE 2048
++
++static void build_fs_mount_list(FsMountList *mounts, Error **errp)
++{
++    FsMount *mount;
++    char const *dfcmd = "/bin/df -hT";
++    //char buf[BUFSIZE];
++
++    FILE *fp;
++    char *line = NULL;
++    //, *dash;
++    size_t n;
++    int ret;
++    //, dir_s, dir_e, type_s, type_e, dev_s, dev_e;
++    char dev_name[30], fstype[10], size[10], used[10], free[10], load[10], mounted[30];
++    //int dev_name, fstype, size, used, free, load, mounted;
++
++    if ((fp = popen(dfcmd, "r")) == NULL) {
++    	g_debug("Cannot open '%s'!!\n", dfcmd);
++        return;
++    }
++	while (getline(&line, &n, fp) != -1) {
++		//g_debug("line '%s'", line);
++		ret = sscanf(line, "%s%s%s%s%s%s%s",
++                     dev_name, fstype, size, used, free, load, mounted);
++		if (g_str_equal(dev_name, "Filesystem")
++				||g_str_equal(fstype,"devfs")
++				||g_str_equal(fstype,"procfs")
++				||g_str_equal(fstype,"fdescfs")) {
++			continue;
++		}
++		//g_debug("ret '%d'", ret);
++
++		if (ret < 7) {
++            continue;
++        }
++        mount = g_new0(FsMount, 1);
++        mount->dirname = g_strdup(dev_name);
++        mount->devtype = g_strdup(fstype);
++        mount->free = g_strdup(free);
++        mount->load = g_strdup(load);
++        mount->size = g_strdup(size);
++        mount->used = g_strdup(used);
++        mount->mntpoint = g_strdup(mounted);
++        mount->devmajor = 0;
++        mount->devminor = 0;
++
++        QTAILQ_INSERT_TAIL(mounts, mount, next);
++    }
++    //free(line);
++
++    fclose(fp);
++}
++
++/* ======================================================= */
++
++
++/* Return a list of the disk device(s)' info which @mount lies on */
++static GuestFilesystemInfo *build_guest_fsinfo(struct FsMount *mount,
++                                               Error **errp)
++{
++    GuestFilesystemInfo *fs = g_malloc0(sizeof(*fs));
++    struct statvfs buf;
++    unsigned long used, nonroot_total, fr_size;
++
++    fs->name = g_strdup(mount->dirname);
++    fs->mountpoint = g_strdup(mount->mntpoint);
++    fs->type = g_strdup(mount->devtype);
++
++    /*
++     * if you need extended structure like this
++     *
++    {
++      "name": "/dev/vtbd0p2",
++      "total-bytes": 9079570432,
++      "mountpoint": "/",
++      "disk": [
++        {
++          "serial": "serial",
++          "bus-type": "virtio",
++          "bus": 0,
++          "unit": 0,
++          "pci-controller": {
++            "bus": 0,
++            "slot": 0,
++            "domain": 0,
++            "function": 0
++          },
++          "dev": "/dev/vtbd0p2",
++          "target": 0
++        }
++      ],
++      "used-bytes": 7378640896,
++      "type": "ufs"
++    }
++
++    instead
++
++    {
++      "name": "/dev/vtbd0p2",
++      "total-bytes": 9079570432,
++      "mountpoint": "/",
++      "disk": [],
++      "used-bytes": 7378747392,
++      "type": "ufs"
++    }
++
++    uncomment next block with pciaddr
++
++    */
++    /*
++    GuestPCIAddress *pciaddr = NULL;
++    GuestDiskAddressList *list = NULL;
++    GuestDiskAddress *disk;
++    pciaddr = g_malloc0(sizeof(*pciaddr));
++    pciaddr->domain = 0;
++    pciaddr->bus = 0;
++    pciaddr->slot = 0;
++    pciaddr->function = 0;
++
++    disk = g_malloc0(sizeof(*disk));
++    disk->pci_controller = pciaddr;
++
++    disk->dev = g_strdup(mount->dirname);
++    disk->has_dev = true;
++    disk->bus_type = GUEST_DISK_BUS_TYPE_VIRTIO;
++    disk->serial = g_strdup("serial");
++    disk->has_serial = true;
++
++    list = g_malloc0(sizeof(*list));
++    list->value = disk;
++
++    list->next = fs->disk;
++    fs->disk = list;
++	*/
++
++    if (statvfs(fs->mountpoint, &buf) == 0) {
++        fr_size = buf.f_frsize;
++        used = buf.f_blocks - buf.f_bfree;
++        nonroot_total = used + buf.f_bavail;
++        fs->used_bytes = used * fr_size;
++        fs->total_bytes = nonroot_total * fr_size;
++
++        fs->has_total_bytes = true;
++        fs->has_used_bytes = true;
++    }
++
++    //g_free(devpath);
++
++    return fs;
++}
++
++GuestFilesystemInfoList *qmp_guest_get_fsinfo(Error **errp)
++{
++    FsMountList mounts;
++    struct FsMount *mount;
++    GuestFilesystemInfoList *new, *ret = NULL;
++    Error *local_err = NULL;
++
++    QTAILQ_INIT(&mounts);
++
++    //g_debug("Entering to guest_get_fsinfo");
++    build_fs_mount_list(&mounts, &local_err);
++    if (local_err) {
++        error_propagate(errp, local_err);
++        return NULL;
++    }
++
++
++    QTAILQ_FOREACH(mount, &mounts, next) {
++        //g_debug("Building guest fsinfo for '%s'", mount->dirname);
++        //g_debug("Devtype '%s'", mount->devtype);
++        new = g_malloc0(sizeof(*ret));
++        new->value = build_guest_fsinfo(mount, &local_err);
++        new->next = ret;
++        ret = new;
++        if (local_err) {
++            error_propagate(errp, local_err);
++            qapi_free_GuestFilesystemInfoList(ret);
++            ret = NULL;
++            break;
++        }
++    }
++
++    free_fs_mount_list(&mounts);
++    return ret;
++}
 +
 +#endif
