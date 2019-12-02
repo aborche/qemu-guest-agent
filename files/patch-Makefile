@@ -1,51 +1,42 @@
---- Makefile.orig	2019-11-17 17:36:49.272193000 +0300
-+++ Makefile	2019-11-17 17:40:44.940035000 +0300
-@@ -191,7 +191,7 @@
- 
- GENERATED_FILES += $(TRACE_HEADERS)
- GENERATED_FILES += $(TRACE_SOURCES)
--GENERATED_FILES += $(BUILD_DIR)/trace-events-all
-+#GENERATED_FILES += $(BUILD_DIR)/trace-events-all
- GENERATED_FILES += .git-submodule-status
- 
- trace-group-name = $(shell dirname $1 | sed -e 's/[^a-zA-Z0-9]/_/g')
-@@ -832,27 +832,17 @@
- 	$(INSTALL_DIR) "$(DESTDIR)$(qemu_docdir)"
- 	$(INSTALL_DATA) qemu-doc.html "$(DESTDIR)$(qemu_docdir)"
- 	$(INSTALL_DATA) qemu-doc.txt "$(DESTDIR)$(qemu_docdir)"
--	$(INSTALL_DATA) docs/interop/qemu-qmp-ref.html "$(DESTDIR)$(qemu_docdir)"
--	$(INSTALL_DATA) docs/interop/qemu-qmp-ref.txt "$(DESTDIR)$(qemu_docdir)"
- endif
+--- Makefile.orig       2019-12-02 11:20:32.173772000 +0000
++++ Makefile    2019-12-02 11:23:26.640802000 +0000
+@@ -800,27 +800,19 @@
+        $(INSTALL_DIR) "$(DESTDIR)$(qemu_docdir)"
+        $(INSTALL_DATA) qemu-doc.html "$(DESTDIR)$(qemu_docdir)"
+        $(INSTALL_DATA) qemu-doc.txt "$(DESTDIR)$(qemu_docdir)"
+-       $(INSTALL_DATA) docs/interop/qemu-qmp-ref.html "$(DESTDIR)$(qemu_docdir)"
+-       $(INSTALL_DATA) docs/interop/qemu-qmp-ref.txt "$(DESTDIR)$(qemu_docdir)"
  ifdef CONFIG_POSIX
- 	$(INSTALL_DIR) "$(DESTDIR)$(mandir)/man1"
- 	$(INSTALL_DATA) qemu.1 "$(DESTDIR)$(mandir)/man1"
- 	$(INSTALL_DIR) "$(DESTDIR)$(mandir)/man7"
--	$(INSTALL_DATA) docs/interop/qemu-qmp-ref.7 "$(DESTDIR)$(mandir)/man7"
--	$(INSTALL_DATA) docs/qemu-block-drivers.7 "$(DESTDIR)$(mandir)/man7"
- 	$(INSTALL_DATA) docs/qemu-cpu-models.7 "$(DESTDIR)$(mandir)/man7"
+        $(INSTALL_DIR) "$(DESTDIR)$(mandir)/man1"
+        $(INSTALL_DATA) qemu.1 "$(DESTDIR)$(mandir)/man1"
+        $(INSTALL_DIR) "$(DESTDIR)$(mandir)/man7"
+-       $(INSTALL_DATA) docs/interop/qemu-qmp-ref.7 "$(DESTDIR)$(mandir)/man7"
+-       $(INSTALL_DATA) docs/qemu-block-drivers.7 "$(DESTDIR)$(mandir)/man7"
+        $(INSTALL_DATA) docs/qemu-cpu-models.7 "$(DESTDIR)$(mandir)/man7"
  ifneq ($(TOOLS),)
--	$(INSTALL_DATA) qemu-img.1 "$(DESTDIR)$(mandir)/man1"
- 	$(INSTALL_DIR) "$(DESTDIR)$(mandir)/man8"
--	$(INSTALL_DATA) qemu-nbd.8 "$(DESTDIR)$(mandir)/man8"
+-       $(INSTALL_DATA) qemu-img.1 "$(DESTDIR)$(mandir)/man1"
+        $(INSTALL_DIR) "$(DESTDIR)$(mandir)/man8"
+-       $(INSTALL_DATA) qemu-nbd.8 "$(DESTDIR)$(mandir)/man8"
+ endif
+ ifdef CONFIG_TRACE_SYSTEMTAP
+        $(INSTALL_DATA) scripts/qemu-trace-stap.1 "$(DESTDIR)$(mandir)/man1"
  endif
  ifneq (,$(findstring qemu-ga,$(TOOLS)))
- 	$(INSTALL_DATA) qemu-ga.8 "$(DESTDIR)$(mandir)/man8"
--ifndef NOPORTDOCS
--	$(INSTALL_DATA) docs/interop/qemu-ga-ref.html "$(DESTDIR)$(qemu_docdir)"
--	$(INSTALL_DATA) docs/interop/qemu-ga-ref.txt "$(DESTDIR)$(qemu_docdir)"
--endif
- 	$(INSTALL_DATA) docs/interop/qemu-ga-ref.7 "$(DESTDIR)$(mandir)/man7"
+        $(INSTALL_DATA) qemu-ga.8 "$(DESTDIR)$(mandir)/man8"
+-       $(INSTALL_DATA) docs/interop/qemu-ga-ref.html "$(DESTDIR)$(qemu_docdir)"
+-       $(INSTALL_DATA) docs/interop/qemu-ga-ref.txt "$(DESTDIR)$(qemu_docdir)"
+        $(INSTALL_DATA) docs/interop/qemu-ga-ref.7 "$(DESTDIR)$(mandir)/man7"
  endif
  endif
-@@ -895,11 +885,6 @@
+@@ -904,11 +896,6 @@
  ifdef CONFIG_GTK
- 	$(MAKE) -C po $@
+        $(MAKE) -C po $@
  endif
--	$(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/keymaps"
--	set -e; for x in $(KEYMAPS); do \
--		$(INSTALL_DATA) $(SRC_PATH)/pc-bios/keymaps/$$x "$(DESTDIR)$(qemu_datadir)/keymaps"; \
--	done
--	$(INSTALL_DATA) $(BUILD_DIR)/trace-events-all "$(DESTDIR)$(qemu_datadir)/trace-events-all"
- 	for d in $(TARGET_DIRS); do \
- 	$(MAKE) $(SUBDIR_MAKEFLAGS) TARGET_DIR=$$d/ -C $$d $@ || exit 1 ; \
-         done
+-       $(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/keymaps"
+-       set -e; for x in $(KEYMAPS); do \
+-               $(INSTALL_DATA) $(SRC_PATH)/pc-bios/keymaps/$$x "$(DESTDIR)$(qemu_datadir)/keymaps"; \
+-       done
+-       $(INSTALL_DATA) $(BUILD_DIR)/trace-events-all "$(DESTDIR)$(qemu_datadir)/trace-events-all"
+
+ .PHONY: ctags
+ ctags:
