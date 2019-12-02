@@ -88,7 +88,7 @@ LIB_DEPENDS=
 # before do-patch, and causes a conflict with the master port's patch. And we
 # can't use post-patch, because the master port also defines that target.
 pre-configure:
-	${PATCH} ${WRKSRC}/Makefile ${.CURDIR}/files/patch-Makefile
+	${PATCH} --ignore-whitespace ${WRKSRC}/Makefile ${.CURDIR}/files/patch-Makefile
 
 
 post-install:
