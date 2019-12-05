@@ -1,22 +1,27 @@
-PKGNAMESUFFIX=	-guest-agent
 
-MAINTAINER=	zhecka@gmail.com
-COMMENT=	QEMU guest-agent utilities
+PORTNAME=       qemu
+PORTVERSION=    4.1.1
+PKGNAMESUFFIX=	-guest-agent
+CATEGORIES=     emulators
+MASTER_SITES=   https://download.qemu.org/
+DIST_SUBDIR=    qemu/${PORTVERSION}
 USE_RC_SUBR=	qemu-guest-agent
 FILESDIR=	${.CURDIR}/files
 
+MAINTAINER=	zhecka@gmail.com
+COMMENT=	QEMU guest-agent utilities
+
+LICENSE=        GPLv2
+
 HAS_CONFIGURE=	yes
-#USES=		cpe gmake pkgconfig perl5 python:2.7,build tar:xz
 USES=		gmake pkgconfig python:build tar:xz
-#USE_GNOME=	glib20
+USE_GNOME=	glib20
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
 CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
 
 OPTIONS_EXCLUDE=SAMBA X11 GTK3 OPENGL GNUTLS SASL JPEG PNG CURL \
-		CDROM_DMA PCAP USBREDIR GNS3 X86_TARGETS \
+		CDROM_DMA PCAP USBREDIR GNS3 X86_TARGETS DOCS\
 		STATIC_LINK NCURSES VDE
-
-OPTIONS_SLAVE=	DOCS
 
 MASTERDIR=	/usr/ports/emulators/qemu
 PLIST=		${.CURDIR}/pkg-plist
@@ -25,11 +30,21 @@ EXTRA_PATCHES=	${.CURDIR}/files/patch-configure \
 		${.CURDIR}/files/patch-commands-posix \
 		${.CURDIR}/files/patch-qga-main \
 		${.CURDIR}/files/patch-qga-Makefile-objs
+
 PKGMESSAGE=
 
-PORTDOCS=	
+# Port doc section
+# OPTIONS_DEFINE=	DOCS
+PORTDOCS=
+# qemu-doc.html qemu-doc.txt qemu-ga-ref.html qemu-ga-ref.txt
+# DOCS_BUILD_DEPENDS=    texi2html:textproc/texi2html \
+#                       sphinx-build:textproc/py-sphinx
+# DOCS_MAKE_ARGS_OFF=    NOPORTDOCS=1
+# DOCS_USES=             makeinfo
+
 
 CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
+		--enable-debug-info --enable-debug \
 		--disable-libssh \
 		--mandir=${MANPREFIX}/man \
 		--prefix=${PREFIX} --cc=${CC} --disable-kvm \
@@ -46,7 +61,6 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-sdl \
 		--disable-system \
 		--disable-user \
-		--disable-guest-agent \
 		--disable-nettle \
 		--disable-gcrypt \
 		--disable-curses \
@@ -61,7 +75,6 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-netmap \
 		--disable-cap-ng \
 		--disable-attr \
-		--disable-vhost-net \
 		--disable-spice \
 		--disable-rbd \
 		--disable-libiscsi \
@@ -80,11 +93,30 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-blobs \
 		--disable-capstone \
 		--disable-tcg-interpreter \
+		--disable-debug-tcg \
 		--disable-slirp \
+		--disable-bochs \
+		--disable-cloop \
+		--disable-dmg \
+		--disable-qcow1 \
+		--disable-vdi \
+		--disable-vvfat \
+		--disable-qed \
+		--disable-parallels \
+		--disable-sheepdog \
+		--disable-live-block-migration \
+		--disable-qom-cast-debug \
+		--disable-debug-mutex \
+		--disable-vhost-user \
+		--disable-vhost-vsock \
+		--disable-vhost-scsi \
+		--disable-vhost-crypto \
+		--disable-vhost-net \
+		--disable-iconv \
+		--disable-auth-pam \
+		--disable-libxml2 \
+		--disable-replication \
 		--enable-guest-agent
-
-LIB_DEPENDS=
-INSTALLS_ICONS=
 
 # qemu-guest-agent must patch Makefile during pre-configure, because the master port
 # also patches Makefile.  We can't use EXTRA_PATCHES, because that happens
@@ -103,4 +135,35 @@ post-install:
 	@${RMDIR} ${STAGEDIR}${DATADIR}
 	${MKDIR} ${STAGEDIR}${PREFIX}/qemu
 
-.include "${MASTERDIR}/Makefile"
+.include <bsd.port.options.mk>
+
+.if !defined(STRIP) || ${STRIP} == ""
+CONFIGURE_ARGS+=--disable-strip
+.endif
+
+.if ${ARCH} == "amd64"
+MAKE_ARGS+=	ARCH=x86_64
+.endif
+
+.if ${ARCH} == "powerpc"
+MAKE_ARGS+=	ARCH=ppc
+.endif
+
+.if ${ARCH} == "powerpc64"
+MAKE_ARGS+=	ARCH=ppc64
+.endif
+
+.if ${ARCH} == "sparc64"
+CONFIGURE_ARGS+=	--sparc_cpu=v9
+.endif
+
+PLIST_SUB+=	LINUXBOOT_DMA=""
+
+# XXX need to disable usb host code on head while it's not ported to the
+# new usb stack yet
+post-configure:
+	@${REINPLACE_CMD} -E \
+		-e "s|^(HOST_USB=)bsd|\1stub|" \
+		${WRKSRC}/config-host.mak
+
+.include <bsd.port.mk>
