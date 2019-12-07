@@ -7,11 +7,10 @@
   *
   * Copyright IBM Corp. 2011
   *
-@@ -25,7 +25,23 @@
+@@ -25,7 +25,22 @@
  #include "qemu/sockets.h"
  #include "qemu/base64.h"
  #include "qemu/cutils.h"
-+#include "mntent.h"
  
 +#if !defined(_WIN32)
 +#include <ifaddrs.h>
