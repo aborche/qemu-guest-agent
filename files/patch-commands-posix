@@ -1,5 +1,5 @@
---- qga/commands-posix.c.orig	2019-10-02 01:31:45.000000000 +0300
-+++ qga/commands-posix.c	2019-11-20 00:17:07.778181000 +0300
+--- qga/commands-posix.c.orig	2020-09-15 19:31:14.000000000 +0300
++++ qga/commands-posix.c	2020-12-02 00:50:15.289017000 +0300
 @@ -1,5 +1,5 @@
  /*
 - * QEMU Guest Agent POSIX-specific command implementations
@@ -7,10 +7,9 @@
   *
   * Copyright IBM Corp. 2011
   *
-@@ -25,7 +25,22 @@
- #include "qemu/sockets.h"
- #include "qemu/base64.h"
+@@ -28,6 +28,21 @@
  #include "qemu/cutils.h"
+ #include "commands-common.h"
  
 +#if !defined(_WIN32)
 +#include <ifaddrs.h>
@@ -30,7 +29,7 @@
  #ifdef HAVE_UTMPX
  #include <utmpx.h>
  #endif
-@@ -42,7 +58,6 @@
+@@ -44,7 +59,6 @@
  #if defined(__linux__)
  #include <mntent.h>
  #include <linux/fs.h>
@@ -38,7 +37,7 @@
  #include <arpa/inet.h>
  #include <sys/socket.h>
  #include <net/if.h>
-@@ -83,14 +98,15 @@
+@@ -85,14 +99,15 @@
  {
      const char *shutdown_flag;
      Error *local_err = NULL;
@@ -56,7 +55,7 @@
      } else if (strcmp(mode, "reboot") == 0) {
          shutdown_flag = "-r";
      } else {
-@@ -106,9 +122,10 @@
+@@ -108,9 +123,10 @@
          reopen_fd_to_null(0);
          reopen_fd_to_null(1);
          reopen_fd_to_null(2);
@@ -69,7 +68,7 @@
          _exit(EXIT_FAILURE);
      } else if (pid < 0) {
          error_setg_errno(errp, errno, "failed to create child process");
-@@ -151,9 +168,6 @@
+@@ -153,9 +169,6 @@
  void qmp_guest_set_time(bool has_time, int64_t time_ns, Error **errp)
  {
      int ret;
@@ -77,9 +76,9 @@
 -    pid_t pid;
 -    Error *local_err = NULL;
      struct timeval tv;
- 
-     /* If user has passed a time, validate and set it. */
-@@ -180,43 +194,6 @@
+     static const char hwclock_path[] = "/sbin/hwclock";
+     static int hwclock_available = -1;
+@@ -193,43 +206,6 @@
              return;
          }
      }
@@ -97,7 +96,7 @@
 -
 -        /* Use '/sbin/hwclock -w' to set RTC from the system time,
 -         * or '/sbin/hwclock -s' to set the system time from RTC. */
--        execle("/sbin/hwclock", "hwclock", has_time ? "-w" : "-s",
+-        execle(hwclock_path, "hwclock", has_time ? "-w" : "-s",
 -               NULL, environ);
 -        _exit(EXIT_FAILURE);
 -    } else if (pid < 0) {
@@ -123,7 +122,7 @@
  }
  
  typedef enum {
-@@ -619,8 +596,12 @@
+@@ -616,8 +592,12 @@
  }
  
  /* linux-specific implementations. avoid this if at all possible. */
@@ -136,7 +135,7 @@
  #if defined(CONFIG_FSFREEZE) || defined(CONFIG_FSTRIM)
  typedef struct FsMount {
      char *dirname;
-@@ -2627,11 +2608,11 @@
+@@ -2626,11 +2606,11 @@
      error_setg(errp, QERR_UNSUPPORTED);
  }
  
@@ -150,7 +149,7 @@
  
  GuestLogicalProcessorList *qmp_guest_get_vcpus(Error **errp)
  {
-@@ -2645,13 +2626,13 @@
+@@ -2644,13 +2624,13 @@
      return -1;
  }
  
@@ -166,7 +165,7 @@
  
  GuestMemoryBlockList *qmp_guest_get_memory_blocks(Error **errp)
  {
-@@ -2676,11 +2657,13 @@
+@@ -2675,11 +2655,13 @@
  
  #if !defined(CONFIG_FSFREEZE)
  
@@ -180,7 +179,7 @@
  
  GuestFsfreezeStatus qmp_guest_fsfreeze_status(Error **errp)
  {
-@@ -2727,9 +2710,10 @@
+@@ -2726,9 +2708,10 @@
  {
  #if !defined(__linux__)
      {
@@ -192,8 +191,8 @@
 +            "guest-suspend-hybrid",
              "guest-get-vcpus", "guest-set-vcpus",
              "guest-get-memory-blocks", "guest-set-memory-blocks",
-             "guest-get-memory-block-size", NULL};
-@@ -2743,10 +2727,11 @@
+             "guest-get-memory-block-size", "guest-get-memory-block-info",
+@@ -2743,10 +2726,11 @@
  
  #if !defined(CONFIG_FSFREEZE)
      {
@@ -207,7 +206,7 @@
          char **p = (char **)list;
  
          while (*p) {
-@@ -2979,3 +2964,521 @@
+@@ -2979,3 +2963,521 @@
  
      return info;
  }

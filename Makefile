@@ -1,6 +1,6 @@
 
 PORTNAME=       qemu
-PORTVERSION=    4.1.1
+PORTVERSION=    5.0.1
 PKGNAMESUFFIX=	-guest-agent
 CATEGORIES=     emulators
 MASTER_SITES=   https://download.qemu.org/
@@ -31,7 +31,7 @@ EXTRA_PATCHES=	${.CURDIR}/files/patch-configure \
 		${.CURDIR}/files/patch-qga-main \
 		${.CURDIR}/files/patch-qga-Makefile-objs
 
-PKGMESSAGE=
+PKGMESSAGE=	${.CURDIR}/pkg-message
 
 # Port doc section
 # OPTIONS_DEFINE=	DOCS
@@ -42,59 +42,97 @@ PORTDOCS=
 # DOCS_MAKE_ARGS_OFF=    NOPORTDOCS=1
 # DOCS_USES=             makeinfo
 
-
 CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
-		--enable-debug-info --enable-debug \
-		--disable-libssh \
 		--mandir=${MANPREFIX}/man \
 		--prefix=${PREFIX} --cc=${CC} --disable-kvm \
-		--disable-linux-user --disable-linux-aio --disable-xen \
 		--python=${PYTHON_CMD} \
 		--extra-cflags=-I${WRKSRC}\ -I${LOCALBASE}/include\ -DPREFIX=\\\"\"${PREFIX}\\\"\" \
-		--disable-curl \
-		--disable-gnutls \
-		--disable-gtk \
-		--disable-vte \
-		--disable-vnc-jpeg \
-		--disable-opengl \
-		--disable-usb-redir \
-		--disable-sdl \
+		--disable-blobs \
 		--disable-system \
 		--disable-user \
+		--disable-linux-user \
+		--disable-bsd-user \
+		--disable-docs \
+		--enable-guest-agent \
+		--disable-guest-agent-msi \
+		--disable-pie \
+		--disable-modules \
+		--disable-module-upgrades \
+		--disable-debug-tcg \
+		--disable-debug-info \
+		--disable-sparse \
+		--disable-gnutls \
 		--disable-nettle \
 		--disable-gcrypt \
+		--disable-auth-pam \
+		--disable-sdl \
+		--disable-sdl-image \
+		--disable-gtk \
+		--disable-vte \
 		--disable-curses \
+		--disable-iconv \
 		--disable-vnc \
+		--disable-vnc-sasl \
+		--disable-vnc-jpeg \
+		--disable-vnc-png \
+		--disable-cocoa \
 		--disable-virtfs \
+		--disable-mpath \
+		--disable-xen \
+		--disable-xen-pci-passthrough \
 		--disable-brlapi \
+		--disable-curl \
+		--disable-membarrier \
 		--disable-fdt \
-		--disable-bluez \
 		--disable-kvm \
+		--disable-hax \
+		--disable-hvf \
+		--disable-whpx \
 		--disable-rdma \
+		--disable-pvrdma \
 		--disable-vde \
 		--disable-netmap \
+		--disable-linux-aio \
+		--disable-linux-io-uring \
 		--disable-cap-ng \
 		--disable-attr \
+		--disable-vhost-net \
+		--disable-vhost-vsock \
+		--disable-vhost-scsi \
+		--disable-vhost-crypto \
+		--disable-vhost-kernel \
+		--disable-vhost-user \
 		--disable-spice \
 		--disable-rbd \
 		--disable-libiscsi \
 		--disable-libnfs \
 		--disable-smartcard \
 		--disable-libusb \
+		--disable-live-block-migration \
 		--disable-usb-redir \
 		--disable-lzo \
 		--disable-snappy \
 		--disable-bzip2 \
+		--disable-lzfse \
+		--disable-zstd \
 		--disable-seccomp \
 		--disable-coroutine-pool \
 		--disable-glusterfs \
 		--disable-tpm \
+		--disable-libssh \
 		--disable-numa \
-		--disable-blobs \
-		--disable-capstone \
-		--disable-tcg-interpreter \
-		--disable-debug-tcg \
-		--disable-slirp \
+		--disable-libxml2 \
+		--disable-tcmalloc \
+		--disable-jemalloc \
+		--disable-avx2 \
+		--disable-avx512f \
+		--disable-replication \
+		--disable-opengl \
+		--disable-virglrenderer \
+		--disable-xfsctl \
+		--disable-qom-cast-debug \
+		--enable-tools \
+		--disable-vxhs \
 		--disable-bochs \
 		--disable-cloop \
 		--disable-dmg \
@@ -104,19 +142,11 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-qed \
 		--disable-parallels \
 		--disable-sheepdog \
-		--disable-live-block-migration \
-		--disable-qom-cast-debug \
+		--disable-crypto-afalg \
+		--disable-capstone \
 		--disable-debug-mutex \
-		--disable-vhost-user \
-		--disable-vhost-vsock \
-		--disable-vhost-scsi \
-		--disable-vhost-crypto \
-		--disable-vhost-net \
-		--disable-iconv \
-		--disable-auth-pam \
-		--disable-libxml2 \
-		--disable-replication \
-		--enable-guest-agent
+		--disable-libpmem \
+		--disable-xkbcommon
 
 # qemu-guest-agent must patch Makefile during pre-configure, because the master port
 # also patches Makefile.  We can't use EXTRA_PATCHES, because that happens
