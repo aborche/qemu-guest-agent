@@ -75,9 +75,9 @@
         "success-response": true
       },
       {
-        "enabled": false,
+        "enabled": true,
         "name": "guest-get-vcpus",
-	"freebsd-support": false,
+	"freebsd-support": true,
         "success-response": true
       },
       {

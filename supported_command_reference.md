@@ -12,7 +12,7 @@
 | guest-set-user-password         | True      | True              | True               |
 | guest-get-fsinfo                | True      | True              | True               |
 | ~~guest-set-vcpus~~             | False     | **False**         | True               |
-| ~~guest-get-vcpus~~             | False     | **False**         | True               |
+| guest-get-vcpus                 | True      | True              | True               |
 | guest-network-get-interfaces    | True      | True              | True               |
 | ~~guest-suspend-hybrid~~        | False     | **False**         | False              |
 | ~~guest-suspend-ram~~           | False     | **False**         | False              |

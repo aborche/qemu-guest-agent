@@ -46,7 +46,7 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--mandir=${MANPREFIX}/man \
 		--prefix=${PREFIX} --cc=${CC} --disable-kvm \
 		--python=${PYTHON_CMD} \
-		--extra-cflags=-I${WRKSRC}\ -I${LOCALBASE}/include\ -DPREFIX=\\\"\"${PREFIX}\\\"\" \
+		--extra-cflags=-I${WRKSRC}\ -I${LOCALBASE}/include\ -DPREFIX=\\\"\"${PREFIX}\\\"\"\ -DBSD_GUEST_AGENT\ -DFREEBSD \
 		--disable-blobs \
 		--disable-system \
 		--disable-user \
