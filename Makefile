@@ -1,46 +1,34 @@
+# Created by: Kaltashkin Eugene <zhecka@gmail.com>
+# $FreeBSD$
 
-PORTNAME=       qemu
-PORTVERSION=    5.0.1
+PORTNAME=	qemu
+DISTVERSION=	5.0.1
+CATEGORIES=	emulators
+MASTER_SITES=	https://download.qemu.org/
 PKGNAMESUFFIX=	-guest-agent
-CATEGORIES=     emulators
-MASTER_SITES=   https://download.qemu.org/
-DIST_SUBDIR=    qemu/${PORTVERSION}
-USE_RC_SUBR=	qemu-guest-agent
-FILESDIR=	${.CURDIR}/files
 
 MAINTAINER=	zhecka@gmail.com
 COMMENT=	QEMU guest-agent utilities
 
-LICENSE=        GPLv2
+LICENSE=	GPLv2
 
+DIST_SUBDIR=	qemu/${PORTVERSION}
+FILESDIR=	${.CURDIR}/files
 HAS_CONFIGURE=	yes
-USES=		gmake pkgconfig python:build tar:xz
+USES=		gmake gnome pkgconfig python:build tar:xz
 USE_GNOME=	glib20
+USE_RC_SUBR=	qemu-guest-agent
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
-CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
 
+CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
 OPTIONS_EXCLUDE=SAMBA X11 GTK3 OPENGL GNUTLS SASL JPEG PNG CURL \
 		CDROM_DMA PCAP USBREDIR GNS3 X86_TARGETS DOCS\
 		STATIC_LINK NCURSES VDE
 
-MASTERDIR=	/usr/ports/emulators/qemu
 PLIST=		${.CURDIR}/pkg-plist
 DESCR=		${.CURDIR}/pkg-descr
-EXTRA_PATCHES=	${.CURDIR}/files/patch-configure \
-		${.CURDIR}/files/patch-commands-posix \
-		${.CURDIR}/files/patch-qga-main \
-		${.CURDIR}/files/patch-qga-Makefile-objs
 
 PKGMESSAGE=	${.CURDIR}/pkg-message
-
-# Port doc section
-# OPTIONS_DEFINE=	DOCS
-PORTDOCS=
-# qemu-doc.html qemu-doc.txt qemu-ga-ref.html qemu-ga-ref.txt
-# DOCS_BUILD_DEPENDS=    texi2html:textproc/texi2html \
-#                       sphinx-build:textproc/py-sphinx
-# DOCS_MAKE_ARGS_OFF=    NOPORTDOCS=1
-# DOCS_USES=             makeinfo
 
 CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--mandir=${MANPREFIX}/man \
@@ -147,14 +135,6 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-debug-mutex \
 		--disable-libpmem \
 		--disable-xkbcommon
-
-# qemu-guest-agent must patch Makefile during pre-configure, because the master port
-# also patches Makefile.  We can't use EXTRA_PATCHES, because that happens
-# before do-patch, and causes a conflict with the master port's patch. And we
-# can't use post-patch, because the master port also defines that target.
-pre-configure:
-	${PATCH} ${WRKSRC}/Makefile ${.CURDIR}/files/patch-Makefile
-
 
 post-install:
 	@${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/qemu-*

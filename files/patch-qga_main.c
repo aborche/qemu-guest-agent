@@ -1,5 +1,5 @@
---- qga/main.c.orig	2020-09-15 19:31:14.000000000 +0300
-+++ qga/main.c	2021-03-06 01:52:33.102160000 +0300
+--- qga/main.c.orig	2020-09-15 16:31:14 UTC
++++ qga/main.c
 @@ -46,9 +46,15 @@
  #endif
  
@@ -16,7 +16,7 @@
  #else
  #define QGA_VIRTIO_PATH_DEFAULT "\\\\.\\Global\\org.qemu.guest_agent.0"
  #define QGA_STATE_RELATIVE_DIR  "qemu-ga"
-@@ -1478,7 +1484,11 @@
+@@ -1478,7 +1484,11 @@ int main(int argc, char **argv)
      }
  
      if (config->method == NULL) {

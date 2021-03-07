@@ -1,5 +1,5 @@
---- qga/commands-posix.c.orig	2021-03-06 04:11:05.579333000 +0300
-+++ qga/commands-posix.c	2021-03-06 04:11:05.579321000 +0300
+--- qga/commands-posix.c.orig	2020-09-15 16:31:14 UTC
++++ qga/commands-posix.c
 @@ -28,6 +28,21 @@
  #include "qemu/cutils.h"
  #include "commands-common.h"
@@ -22,7 +22,7 @@
  #ifdef HAVE_UTMPX
  #include <utmpx.h>
  #endif
-@@ -85,14 +100,25 @@
+@@ -85,14 +100,25 @@ void qmp_guest_shutdown(bool has_mode, const char *mod
  {
      const char *shutdown_flag;
      Error *local_err = NULL;
@@ -48,7 +48,7 @@
      } else if (strcmp(mode, "reboot") == 0) {
          shutdown_flag = "-r";
      } else {
-@@ -108,9 +134,15 @@
+@@ -108,9 +134,15 @@ void qmp_guest_shutdown(bool has_mode, const char *mod
          reopen_fd_to_null(0);
          reopen_fd_to_null(1);
          reopen_fd_to_null(2);
@@ -64,7 +64,7 @@
          _exit(EXIT_FAILURE);
      } else if (pid < 0) {
          error_setg_errno(errp, errno, "failed to create child process");
-@@ -153,9 +185,11 @@
+@@ -153,9 +185,11 @@ int64_t qmp_guest_get_time(Error **errp)
  void qmp_guest_set_time(bool has_time, int64_t time_ns, Error **errp)
  {
      int ret;
@@ -76,7 +76,7 @@
      struct timeval tv;
      static const char hwclock_path[] = "/sbin/hwclock";
      static int hwclock_available = -1;
-@@ -193,7 +227,7 @@
+@@ -193,7 +227,7 @@ void qmp_guest_set_time(bool has_time, int64_t time_ns
              return;
          }
      }
@@ -85,7 +85,7 @@
      /* Now, if user has passed a time to set and the system time is set, we
       * just need to synchronize the hardware clock. However, if no time was
       * passed, user is requesting the opposite: set the system time from the
-@@ -230,6 +264,7 @@
+@@ -230,6 +264,7 @@ void qmp_guest_set_time(bool has_time, int64_t time_ns
          error_setg(errp, "hwclock failed to set hardware clock to system time");
          return;
      }
@@ -93,7 +93,7 @@
  }
  
  typedef enum {
-@@ -2625,25 +2660,263 @@
+@@ -2625,25 +2660,263 @@ void qmp_guest_suspend_hybrid(Error **errp)
  {
      error_setg(errp, QERR_UNSUPPORTED);
  }
@@ -358,7 +358,7 @@
  void qmp_guest_set_user_password(const char *username,
                                   const char *password,
                                   bool crypted,
-@@ -2651,7 +2924,114 @@
+@@ -2651,7 +2924,114 @@ void qmp_guest_set_user_password(const char *username,
  {
      error_setg(errp, QERR_UNSUPPORTED);
  }
@@ -473,7 +473,7 @@
  GuestMemoryBlockList *qmp_guest_get_memory_blocks(Error **errp)
  {
      error_setg(errp, QERR_UNSUPPORTED);
-@@ -2675,12 +3055,240 @@
+@@ -2675,12 +3055,240 @@ GuestMemoryBlockInfo *qmp_guest_get_memory_block_info(
  
  #if !defined(CONFIG_FSFREEZE)
  
@@ -714,7 +714,7 @@
  GuestFsfreezeStatus qmp_guest_fsfreeze_status(Error **errp)
  {
      error_setg(errp, QERR_UNSUPPORTED);
-@@ -2726,6 +3334,7 @@
+@@ -2726,6 +3334,7 @@ GList *ga_command_blacklist_init(GList *blacklist)
  {
  #if !defined(__linux__)
      {
@@ -722,7 +722,7 @@
          const char *list[] = {
              "guest-suspend-disk", "guest-suspend-ram",
              "guest-suspend-hybrid", "guest-network-get-interfaces",
-@@ -2733,6 +3342,15 @@
+@@ -2733,6 +3342,15 @@ GList *ga_command_blacklist_init(GList *blacklist)
              "guest-get-memory-blocks", "guest-set-memory-blocks",
              "guest-get-memory-block-size", "guest-get-memory-block-info",
              NULL};
@@ -738,7 +738,7 @@
          char **p = (char **)list;
  
          while (*p) {
-@@ -2743,10 +3361,17 @@
+@@ -2743,10 +3361,17 @@ GList *ga_command_blacklist_init(GList *blacklist)
  
  #if !defined(CONFIG_FSFREEZE)
      {

@@ -1,3 +1,6 @@
+[
+{ type: install
+  message: <<EOM
 =======================================================
 Modify your `/etc/rc.conf` by adding these settings
 
@@ -9,3 +12,6 @@ and run
 
 For detailed help use `qemu-ga -h`
 =======================================================
+EOM
+}
+]
