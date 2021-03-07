@@ -28,8 +28,6 @@ OPTIONS_EXCLUDE=SAMBA X11 GTK3 OPENGL GNUTLS SASL JPEG PNG CURL \
 PLIST=		${.CURDIR}/pkg-plist
 DESCR=		${.CURDIR}/pkg-descr
 
-PKGMESSAGE=	${.CURDIR}/pkg-message
-
 CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--mandir=${MANPREFIX}/man \
 		--prefix=${PREFIX} --cc=${CC} --disable-kvm \
@@ -165,6 +163,12 @@ MAKE_ARGS+=	ARCH=ppc64
 
 .if ${ARCH} == "sparc64"
 CONFIGURE_ARGS+=	--sparc_cpu=v9
+.endif
+
+.if ${OSVERSION} < 1200000
+PKGMESSAGE=	${.CURDIR}/pkg-message-11
+.else
+PKGMESSAGE=	${.CURDIR}/pkg-message
 .endif
 
 PLIST_SUB+=	LINUXBOOT_DMA=""
