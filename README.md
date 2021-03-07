@@ -6,7 +6,7 @@ QEMU Guest Agent version for FreeBSD guest
 
 This port provides "as is". Some commands is not working, for example "fsfreeze". We try to make a patches for vcpu and fs features at FreeBSD.
 Command reference and current command support status in FreeBSD can be found [here](https://github.com/aborche/qemu-guest-agent/blob/master/supported_command_reference.md)
-Be Careful. Port builds without docs.
+Be Careful. Port builds without any docs.
 
 ## Supported systems
 
@@ -14,7 +14,6 @@ Port tested at FreeBSD 12
 
 ## FreeBSD 11 issues
 
-If you need to build this port on FreeBSD 11 - before building, place 'qemu-guest-agent.in' to '/usr/ports/emulators/qemu/files/' folder.
 *virtio_console* driver in FreeBSD 11 doesn't support aliasing virtio channels in devfs. Use direct path for control device. eq: 
 
 ```
@@ -48,26 +47,6 @@ dr-xr-xr-x   2 root  wheel  512 Oct 22 16:05 .
 dr-xr-xr-x  11 root  wheel  512 Oct 22 16:05 ..
 lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 com.redhat.spice.0 -> ../ttyV0.1
 lrwxr-xr-x   1 root  wheel   10 Oct 22 16:05 org.qemu.guest_agent.0 -> ../ttyV0.2
-```
-
-### Before Building QEMU Guest Agent
-
-Original qemu port in ports tree require some graphic libs.
-QEMU Guest Agent doesn`t use it.
-
-Use next patch for change Makefile in /usr/ports/emulators/qemu
-```
---- Makefile.orig       2018-10-27 17:23:47.760934000 +0300
-+++ Makefile    2018-10-27 17:10:31.140104000 +0300
-@@ -23,7 +23,7 @@
- USES?=         cpe gmake pkgconfig bison perl5 python:2.7,build tar:bzip2
- USE_PERL5=     build
- MAKE_ENV+=     BSD_MAKE="${MAKE}" V=1
--.if !defined(PKGNAMESUFFIX) || ${PKGNAMESUFFIX} != "-utils"
-+.if !defined(PKGNAMESUFFIX) || (${PKGNAMESUFFIX} != "-utils" && ${PKGNAMESUFFIX} != "-guest-agent")
- USE_XORG=      pixman
- USE_GNOME+=    cairo glib20 libxml2
- ONLY_FOR_ARCHS=        amd64 i386 powerpc powerpc64
 ```
 
 ### Installing
@@ -107,18 +86,14 @@ You should see next log records.
 1540239465.752180: debug: disabling command: guest-suspend-disk
 1540239465.752205: debug: disabling command: guest-suspend-ram
 1540239465.752215: debug: disabling command: guest-suspend-hybrid
-1540239465.752224: debug: disabling command: guest-network-get-interfaces
-1540239465.752233: debug: disabling command: guest-get-vcpus
 1540239465.752241: debug: disabling command: guest-set-vcpus
 1540239465.752250: debug: disabling command: guest-get-memory-blocks
 1540239465.752259: debug: disabling command: guest-set-memory-blocks
 1540239465.752267: debug: disabling command: guest-get-memory-block-size
-1540239465.752276: debug: disabling command: guest-get-fsinfo
 1540239465.752285: debug: disabling command: guest-fsfreeze-status
 1540239465.752293: debug: disabling command: guest-fsfreeze-freeze
 1540239465.752302: debug: disabling command: guest-fsfreeze-freeze-list
 1540239465.752310: debug: disabling command: guest-fsfreeze-thaw
-1540239465.752318: debug: disabling command: guest-get-fsinfo
 1540239465.752327: debug: disabling command: guest-fstrim
 ```
 
