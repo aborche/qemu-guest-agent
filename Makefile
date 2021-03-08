@@ -2,7 +2,7 @@
 # $FreeBSD$
 
 PORTNAME=	qemu
-DISTVERSION=	5.0.1
+DISTVERSION=	5.2.0
 CATEGORIES=	emulators
 MASTER_SITES=	https://download.qemu.org/
 PKGNAMESUFFIX=	-guest-agent
@@ -19,21 +19,25 @@ USES=		gmake gnome pkgconfig python:build tar:xz
 USE_GNOME=	glib20
 USE_RC_SUBR=	qemu-guest-agent
 MAKE_ENV+=	BSD_MAKE="${MAKE}" PREFIX=${PREFIX}
+MAKEFILE=	GNUmakefile
+
+BUILD_DEPENDS=	meson:devel/meson bash:shells/bash
 
 CONFLICTS_INSTALL=	qemu-[0-9]* qemu-devel-* qemu-sbruno-*
-OPTIONS_EXCLUDE=SAMBA X11 GTK3 OPENGL GNUTLS SASL JPEG PNG CURL \
-		CDROM_DMA PCAP USBREDIR GNS3 X86_TARGETS DOCS\
-		STATIC_LINK NCURSES VDE
 
 PLIST=		${.CURDIR}/pkg-plist
 DESCR=		${.CURDIR}/pkg-descr
 
-CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
-		--mandir=${MANPREFIX}/man \
-		--prefix=${PREFIX} --cc=${CC} --disable-kvm \
-		--python=${PYTHON_CMD} \
+ALL_TARGET=	qga/qemu-ga
+
+CONFIGURE_ARGS?=--prefix=${PREFIX} --cc=${CC} \
 		--extra-cflags=-I${WRKSRC}\ -I${LOCALBASE}/include\ -DPREFIX=\\\"\"${PREFIX}\\\"\"\ -DBSD_GUEST_AGENT\ -DFREEBSD \
+		--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
+		--mandir=${MANPREFIX}/man \
+		--python=${PYTHON_CMD} \
+		--disable-kvm \
 		--disable-blobs \
+		--disable-slirp \
 		--disable-system \
 		--disable-user \
 		--disable-linux-user \
@@ -47,6 +51,7 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-debug-tcg \
 		--disable-debug-info \
 		--disable-sparse \
+		--disable-safe-stack \
 		--disable-gnutls \
 		--disable-nettle \
 		--disable-gcrypt \
@@ -63,6 +68,8 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-vnc-png \
 		--disable-cocoa \
 		--disable-virtfs \
+		--disable-virtiofsd \
+		--disable-libudev \
 		--disable-mpath \
 		--disable-xen \
 		--disable-xen-pci-passthrough \
@@ -88,11 +95,14 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-vhost-crypto \
 		--disable-vhost-kernel \
 		--disable-vhost-user \
+		--disable-vhost-user-blk-server \
+		--disable-vhost-vdpa \
 		--disable-spice \
 		--disable-rbd \
 		--disable-libiscsi \
 		--disable-libnfs \
 		--disable-smartcard \
+		--disable-u2f \
 		--disable-libusb \
 		--disable-live-block-migration \
 		--disable-usb-redir \
@@ -118,7 +128,6 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-xfsctl \
 		--disable-qom-cast-debug \
 		--enable-tools \
-		--disable-vxhs \
 		--disable-bochs \
 		--disable-cloop \
 		--disable-dmg \
@@ -132,15 +141,18 @@ CONFIGURE_ARGS?=--localstatedir=/var --extra-ldflags=-L\"${LOCALBASE}/lib\" \
 		--disable-capstone \
 		--disable-debug-mutex \
 		--disable-libpmem \
-		--disable-xkbcommon
+		--disable-xkbcommon \
+		--disable-rng-none \
+		--disable-libdaxctl
 
+		
 post-install:
 	@${STRIP_CMD} ${STAGEDIR}${PREFIX}/bin/qemu-*
 	@${RM} ${STAGEDIR}${PREFIX}/bin/qemu-nbd
 	@${RM} ${STAGEDIR}${PREFIX}/bin/qemu-edid
 	@${RM} ${STAGEDIR}${PREFIX}/bin/qemu-img
 	@${RM} ${STAGEDIR}${PREFIX}/bin/qemu-io
-	@${RMDIR} ${STAGEDIR}${DATADIR}
+	#@${RMDIR} ${STAGEDIR}${DATADIR}
 	${MKDIR} ${STAGEDIR}${PREFIX}/qemu
 
 .include <bsd.port.options.mk>
@@ -171,13 +183,6 @@ PKGMESSAGE=	${.CURDIR}/pkg-message-11
 PKGMESSAGE=	${.CURDIR}/pkg-message
 .endif
 
-PLIST_SUB+=	LINUXBOOT_DMA=""
-
-# XXX need to disable usb host code on head while it's not ported to the
-# new usb stack yet
-post-configure:
-	@${REINPLACE_CMD} -E \
-		-e "s|^(HOST_USB=)bsd|\1stub|" \
-		${WRKSRC}/config-host.mak
+#PLIST_SUB+=	LINUXBOOT_DMA=""
 
 .include <bsd.port.mk>

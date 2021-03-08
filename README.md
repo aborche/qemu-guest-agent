@@ -1,5 +1,7 @@
 # QEMU Guest Agent
 
+## DO NOT USE THIS PORT !!! THIS IS PREALPHA FOR QEMU 5.2.0 !!! NO FREEBSD COMPATIBILITY PATCHES ADDED !!!
+
 QEMU Guest Agent version for FreeBSD guest
 
 ## WARNING!!!

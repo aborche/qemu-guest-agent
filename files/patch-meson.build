@@ -1,0 +1,11 @@
+--- meson.build.orig	2020-12-08 16:59:44 UTC
++++ meson.build
+@@ -1944,7 +1944,7 @@ subdir('scripts')
+ subdir('tools')
+ subdir('pc-bios')
+ subdir('docs')
+-subdir('tests')
++#subdir('tests')
+ if 'CONFIG_GTK' in config_host
+   subdir('po')
+ endif
