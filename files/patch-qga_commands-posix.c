@@ -528,40 +528,35 @@
 +{
 +    FsMount *mount;
 +    char const *dfcmd = "/bin/df -hT";
-+    //char buf[BUFSIZE];
 +
 +    FILE *fp;
 +    char *line = NULL;
-+    //, *dash;
 +    size_t n;
 +    int ret;
-+    //, dir_s, dir_e, type_s, type_e, dev_s, dev_e;
-+    char dev_name[30], fstype[10], size[10], used[10], free[10], load[10], mounted[30];
-+    //int dev_name, fstype, size, used, free, load, mounted;
++    int status;
++    char dev_name[30], fstype[10], size[10], used[10], frees[10], load[10], mounted[30];
 +
 +    if ((fp = popen(dfcmd, "r")) == NULL) {
-+    	g_debug("Cannot open '%s'!!\n", dfcmd);
++        g_debug("Cannot open '%s'!!\n", dfcmd);
 +        return;
 +    }
-+	while (getline(&line, &n, fp) != -1) {
-+		//g_debug("line '%s'", line);
-+		ret = sscanf(line, "%s%s%s%s%s%s%s",
-+                     dev_name, fstype, size, used, free, load, mounted);
-+		if (g_str_equal(dev_name, "Filesystem")
-+				||g_str_equal(fstype,"devfs")
-+				||g_str_equal(fstype,"procfs")
-+				||g_str_equal(fstype,"fdescfs")) {
-+			continue;
-+		}
-+		//g_debug("ret '%d'", ret);
++        while (getline(&line, &n, fp) != -1) {
++                ret = sscanf(line, "%s%s%s%s%s%s%s",
++                     dev_name, fstype, size, used, frees, load, mounted);
++                if (g_str_equal(dev_name, "Filesystem")
++                                ||g_str_equal(fstype,"devfs")
++                                ||g_str_equal(fstype,"procfs")
++                                ||g_str_equal(fstype,"fdescfs")) {
++                        continue;
++                }
 +
-+		if (ret < 7) {
++                if (ret < 7) {
 +            continue;
 +        }
 +        mount = g_new0(FsMount, 1);
 +        mount->dirname = g_strdup(dev_name);
 +        mount->devtype = g_strdup(fstype);
-+        mount->free = g_strdup(free);
++        mount->free = g_strdup(frees);
 +        mount->load = g_strdup(load);
 +        mount->size = g_strdup(size);
 +        mount->used = g_strdup(used);
@@ -571,9 +566,14 @@
 +
 +        QTAILQ_INSERT_TAIL(mounts, mount, next);
 +    }
-+    //free(line);
++    free(line);
 +
-+    fclose(fp);
++    status = pclose(fp);
++    if (status == -1) {
++        g_debug("Cannot close '%s'!!\n", dfcmd);
++        return;
++    }
++
 +}
 +
 +/* ======================================================= */
