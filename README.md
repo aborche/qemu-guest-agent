@@ -1,6 +1,10 @@
-# QEMU Guest Agent
+# QEMU Guest Agent (Archived)
 
 QEMU Guest Agent version for FreeBSD guest
+
+# Attention
+
+The project is no longer maintained. Just use the official FreeBSD port.
 
 ## WARNING!!!
 
